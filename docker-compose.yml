@@ -1,0 +1,51 @@
+version: "3"
+
+services:
+  db:
+    container_name: totem-db
+    image: postgres:14.7
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    networks:
+      - totem-network
+
+  django:
+    container_name: totem-service
+    build:
+      context: .
+    command: "uvicorn totem.asgi:application --port 8000 --host 0.0.0.0 --reload --log-level debug"
+    entrypoint: "docker-entrypoint-local.sh"
+    volumes:
+      - ./src:/usr/src/app
+      - totem-static:/usr/src/static
+      - totem-media:/usr/src/media
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_NAME=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    env_file:
+      - default.env
+    tty: true
+    stdin_open: true
+    depends_on:
+      - db
+    networks:
+      - totem-network
+
+volumes:
+  db-data:
+  totem-static:
+  totem-media:
+
+
+networks:
+  totem-network:
+    name: totem-network

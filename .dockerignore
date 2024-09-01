@@ -1,0 +1,13 @@
+Jenkinsfile
+Jenkinsfile.release
+docker-compose.yml
+docker-compose.ci.yml
+Dockerfile
+debug.log*
+error.log*
+.dockerignore
+**/.gitignore
+**/.git
+**/*.pyc
+**/__pycache__
+venv/
