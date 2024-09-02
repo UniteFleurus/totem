@@ -1,0 +1,26 @@
+[
+{
+    "model": "user.userrole",
+    "pk": "SCOUT_CHIEF",
+    "fields": {
+        "name": "Chef",
+        "scopes": "[]"
+    }
+},
+{
+    "model": "user.userrole",
+    "pk": "SCOUT_GROUP_CHIEF",
+    "fields": {
+        "name": "Chef d'Unité",
+        "scopes": "[]"
+    }
+},
+{
+    "model": "user.userrole",
+    "pk": "SCOUT_LEADER",
+    "fields": {
+        "name": "Grand Chef",
+        "scopes": "[]"
+    }
+}
+]
