@@ -1,0 +1,38 @@
+[
+{
+    "model": "website.page",
+    "pk": 1,
+    "fields": {
+        "is_published": true,
+        "date_published": "2024-09-02T19:21:20Z",
+        "title": "Yolo",
+        "slug": "yolo",
+        "content": "<p>This is a small content</p>",
+        "update": "2024-09-04T13:21:28.448Z"
+    }
+},
+{
+    "model": "website.page",
+    "pk": 2,
+    "fields": {
+        "is_published": true,
+        "date_published": "2024-09-04T13:21:13Z",
+        "title": "Lorem Ipsum",
+        "slug": "lorem",
+        "content": "<div><p><b>Lorem Ipsum</b> is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of <i>Letraset</i> sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.</p><p><b>Lorem Ipsum</b> is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of <i>Letraset</i> sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.</p></div>",
+        "update": "2024-09-04T13:21:14.692Z"
+    }
+},
+{
+    "model": "website.page",
+    "pk": 3,
+    "fields": {
+        "is_published": false,
+        "date_published": null,
+        "title": "Not published page",
+        "slug": "todo",
+        "content": "<p><b>Lorem Ipsum</b> is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of <i>Letraset</i> sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.</p>",
+        "update": "2024-09-04T13:21:50.292Z"
+    }
+}
+]

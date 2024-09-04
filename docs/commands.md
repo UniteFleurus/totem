@@ -12,6 +12,29 @@ When starting the service, the database might not be ready to accept queries. Dj
     docker-compose exec ./manage.py wait_for_db
 
 
+### Populate
+
+This command imports data for the specified environment. This command is idempotent
+
+    docker-compose exec django ./manage.py populate --env local --size small --drop-db
+
+ - `--env`:  required env corresponding to the dataset to load. Either `system`, or `local` will load the data required for the service to run.
+ - `--drop-db`: optional. If set, will erase the database (schema and data). Then migration scripts will be re-executed before populating.
+ - `--size`:  optional size of the set of data to introduce in database. Either `small`, `medium` or `large`. Default is `small`.
+
+The command will load authorized fixtures, and execute code to generate or alter data to fit the environment.
+
+
+### Fixture Data
+
+To save data from a django app, the `dumpdata` should be used. Be careful, we distingush data for `local` dev and `system` data required for the application to run.
+
+ - For User Roles: `docker-compose exec django ./manage.py dumpdata user.UserRole -o user/fixtures/system/user_role.json --format json --indent 4`
+
+Local Data:
+ - For User: `docker-compose exec django ./manage.py dumpdata user.User -o user/fixtures/local/user.json --format json --indent 4`
+ - For Website Page: `docker-compose exec django ./manage.py dumpdata user.UserRole -o user/fixtures/local/page.json --format json --indent 4`
+
 ### Tests
 
 To run the test suite, use
