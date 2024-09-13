@@ -14,7 +14,7 @@
         "last_name": null,
         "email": "admin@test.com",
         "language": "fr",
-        "user_type": "PORTAL",
+        "user_type": "ADMIN",
         "groups": [],
         "user_permissions": []
     }

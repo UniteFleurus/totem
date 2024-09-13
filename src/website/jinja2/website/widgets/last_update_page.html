@@ -1,0 +1,10 @@
+<div>
+	<h5>{{ title }}</h5>
+	<div>
+		<ul class="">
+          {% for page in pages %}
+            <li><a href="{{ page.url }}">{{ page.title }}</a></li>
+          {% endfor %}
+        </ul>
+	</div>
+</div>
