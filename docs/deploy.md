@@ -1,10 +1,24 @@
 
-# Push Deployment
+# Totem Deployment
+
+## How To Deploy Locally ?
+
+Once you have checkout this repository with `git clone`, you can run the docker containers locally with
+
+`docker compose up --build` (or without the `--build` option, to avoid buiding the docker image).
+
+Then, to load local data to ease the development, use
+
+`docker compose exec django ./manage.py populate` (See the `commands` section for more details).
+
+This is done, you can go to `http://localhost:8000` to enjoy the public website, or on `http://localhost:8000/admin` to access the native django administration (login and password are `admin`).
+
+When coding, python code is automatically reloaded. Jinja2 Template requires a container restart (maybe a build).
 
 
 ## Environment Variables
 
-Here is a list of required environment variables to run the django container of the Insights Service. They are split in categories, usually prefixed by the component name. Only native django settings and insights business-related are prefixed by `TOTEM_`.
+Here is a list of required environment variables to run the django container of the Totem Service. They are split in categories, usually prefixed by the component name. Only native django settings and totem business-related are prefixed by `TOTEM_`.
 
 ### Django
 
