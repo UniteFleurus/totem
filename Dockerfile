@@ -1,7 +1,5 @@
 FROM python:3.11-bullseye
 
-MAINTAINER MDM Team "mdm-team@famoco.com"
-
 WORKDIR /usr/src/app
 EXPOSE 8000
 
