@@ -24,8 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = env('TOTEM_SECRET_KEY', default=False)
 DEBUG = env('TOTEM_DEBUG', default=False, boolean=True)
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = env('TOTEM_CSRF_TRUSTED_ORIGINS').split(',')
+CORS_ORIGIN_ALLOW_ALL = DEBUG  # Allow all origins when in debug mode
 
 # Application definition
 
