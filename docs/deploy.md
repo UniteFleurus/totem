@@ -24,6 +24,8 @@ Here is a list of required environment variables to run the django container of 
 
  - `TOTEM_DEBUG`: boolean, indicating if django should run in debug mode or not. Default is `False`.
  - `TOTEM_SECRET_KEY`: string, the django secret key.
+  - `TOTEM_CSRF_TRUSTED_ORIGINS`: comma separated complete url of trusted origins. Django 4 required it. Example: `http://localhost:8104,https://mydomain.com:8104`
+
 
 ### Postgres
 
