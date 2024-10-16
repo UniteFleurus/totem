@@ -1,13 +1,35 @@
 import uuid
 from django.conf import settings
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager as BaseUserManager
 from django.db import models
 
-from user import choices
+from user import choices, signals
 
-# ---------------------------------------------------------------
-# User
-# ---------------------------------------------------------------
+
+class UserQuerySet(models.QuerySet):
+
+    def update(self, **kwargs):
+        pks = None
+        if 'user_type' in kwargs:
+            if (
+                self._result_cache is None
+            ):  # queryset not evaluated, fetch only required fields
+                pks = self.values_list('id', flat=True)
+            else:  # queryset already evaluated
+                pks = [user.pk for user in self]
+
+        results = super().update(**kwargs)
+
+        if pks:
+            signals.user_change_rights.send(sender=self.__class__, user_qs=self.model.objects.filter(pk__in=pks))
+        return results
+
+
+class UserManager(BaseUserManager):
+
+    def get_queryset(self):
+        """ Override to unify queryset and manager. """
+        return UserQuerySet(model=self.model, using=self._db, hints=self._hints)
 
 
 class User(AbstractUser):
@@ -37,6 +59,8 @@ class User(AbstractUser):
         'user.UserRole', related_name='users', through='UserRoleRelation'
     )
 
+    objects = UserManager()
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -45,3 +69,10 @@ class User(AbstractUser):
                 violation_error_message="A user with that username already exists.",
             ),
         ]
+
+    def save(self, *args, **kwargs):
+        creating = self._state.adding
+        update_fields = kwargs.get("update_fields")
+        super().save(*args, **kwargs)
+        if not creating and (update_fields is None or "user_type" in update_fields):
+            signals.user_change_rights.send(sender=self.__class__, user_qs=type(self).objects.filter(pk=self.pk))
