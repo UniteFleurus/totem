@@ -31,11 +31,11 @@ class UserQuerySet(CleanupFileQuerysetMixin, models.QuerySet):
 
 
 class UserManager(BaseUserManager, BaseManager.from_queryset(UserQuerySet)):
-    pass
 
-# ---------------------------------------------------------------
-# User
-# ---------------------------------------------------------------
+    def get_queryset(self):
+        """ Override to unify queryset and manager. """
+        return UserQuerySet(model=self.model, using=self._db, hints=self._hints)
+
 
 def upload_to_user_avatar(instance, filename):
         file_name, file_extension = os.path.splitext(filename)
