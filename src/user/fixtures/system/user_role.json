@@ -4,15 +4,15 @@
     "pk": "SCOUT_CHIEF",
     "fields": {
         "name": "Chef",
-        "scopes": "[]"
+        "permissions": "[]"
     }
 },
 {
     "model": "user.userrole",
-    "pk": "SCOUT_GROUP_CHIEF",
+    "pk": "SCOUT_BASE_CHIEF",
     "fields": {
         "name": "Chef d'Unité",
-        "scopes": "[]"
+        "permissions": "[]"
     }
 },
 {
@@ -20,7 +20,7 @@
     "pk": "SCOUT_LEADER",
     "fields": {
         "name": "Grand Chef",
-        "scopes": "[]"
+        "permissions": "[]"
     }
 }
 ]
