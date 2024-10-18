@@ -36,7 +36,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'oauth2_provider',
     'core',
+    'oauth',
     'user',
     'website',
 ]
@@ -150,3 +152,21 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Auth and Users
 AUTH_USER_MODEL = "user.User"
+
+
+# OAuth Toolkit
+
+OAUTH2_PROVIDER_APPLICATION_MODEL = 'oauth.OAuthApp'
+OAUTH2_PROVIDER_ACCESS_TOKEN_MODEL = 'oauth.AccessToken'
+OAUTH2_PROVIDER_REFRESH_TOKEN_MODEL = 'oauth.RefreshToken'
+OAUTH2_PROVIDER_ID_TOKEN_MODEL = 'oauth.IDToken'
+OAUTH2_PROVIDER_GRANT_MODEL = 'oauth.Grant'
+
+OAUTH2_PROVIDER = {
+    'SCOPES_BACKEND_CLASS': 'oauth.scopes.TotemScopes',
+    'OAUTH2_VALIDATOR_CLASS': 'oauth.validators.OAuth2Validator',
+    "OIDC_ENABLED": False, # for now ...
+    "DEFAULT_SCOPES": [],
+    'ACCESS_TOKEN_EXPIRE_SECONDS': 60 * 60 * 10,
+    'REFRESH_TOKEN_EXPIRE_SECONDS': 60 * 60 * 5,  # 5 hours
+}
