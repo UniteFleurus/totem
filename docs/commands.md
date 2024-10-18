@@ -37,6 +37,7 @@ To save data from a django app, the `dumpdata` should be used. Be careful, we di
 System Data are created with:
  - For User Roles: `docker-compose exec django ./manage.py dumpdata user.UserRole -o user/fixtures/system/user_role.json --format json --indent 4`
  - For Website: `docker-compose exec django ./manage.py dumpdata website.Website -o website/fixtures/system/website.json --format json --indent 4`
+ - For OAuth App: `docker-compose exec django ./manage.py dumpdata oauth.OAuthApp -o oauth/fixtures/system/oauth_app.json --format json --indent 4`
 
 Local Data can be generated with a few commands:
  - For User: `docker-compose exec django ./manage.py dumpdata user.User -o user/fixtures/local/user.json --format json --indent 4`
