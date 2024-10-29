@@ -46,6 +46,8 @@ System Data are created with:
 =======
 >>>>>>> 3778266 (oauth: oauth2 implementation with DOT)
 
+#### Local Data
+
 Local Data can be generated with a few commands:
  - For User: `docker-compose exec django ./manage.py dumpdata user.User -o user/fixtures/local/user.json --format json --indent 4`
  - For Website Page: `docker-compose exec django ./manage.py dumpdata website.Page -o website/fixtures/local/page.json --format json --indent 4`

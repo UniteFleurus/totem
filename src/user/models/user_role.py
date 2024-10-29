@@ -2,23 +2,38 @@ from django.db.models.expressions import RawSQL
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
 
-from user import choices, signals
+from core.validators import validate_unique_choice_array
+from user import signals
+from user.access_policy import access_policy
 from user.models import User
+from user.access_rights import get_all_permission
 
 # ---------------------------------------------------------------
 # User Role
 # ---------------------------------------------------------------
 
+def get_rule_choices():
+    return access_policy.get_rule_choices()
+
+
 class UserRole(models.Model):
     id = models.CharField(
         "ID", max_length=128, null=False, blank=False, primary_key=True)
     name = models.CharField(
-        "Name", max_length=255, null=False, blank=False)
+        "Name", max_length=255, null=False, blank=False, choices=get_all_permission)
     permissions = ArrayField(
         models.CharField(max_length=128, blank=False),
         blank=True,
         default=list,
+        validators=[validate_unique_choice_array],
         help_text="List of permissions available for this role."
+    )
+    rules = ArrayField(
+        models.CharField(max_length=128, blank=False, choices=get_rule_choices),
+        blank=True,
+        default=list,
+        validators=[validate_unique_choice_array],
+        help_text="List of access rules applied for this role."
     )
 
 # ---------------------------------------------------------------

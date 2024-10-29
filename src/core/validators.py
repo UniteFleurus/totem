@@ -11,3 +11,8 @@ def validate_html(value):
         etree.fromstring(value)
     except etree.XMLSyntaxError as exc:
         raise ValidationError(_("Content is not a valid html.")) from exc
+
+
+def validate_unique_choice_array(array):
+    if len(list(array)) != len(set(array)):
+        raise ValidationError(_("An element can only be once in the list."))

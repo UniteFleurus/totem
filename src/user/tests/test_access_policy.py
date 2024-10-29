@@ -1,10 +1,11 @@
+from asgiref.sync import async_to_sync
 from collections import namedtuple
 from django.db.models import Q
 from django.test import TestCase
 from parameterized import parameterized
 
 from user.models import User, UserRole
-from user.access_policy import apply_access_rules, access_policy, BaseRule, ALL_ACTIONS
+from user.access_policy import apply_access_rules, access_policy, BaseRule, Context
 
 MockRequest = namedtuple('MockRequest', 'user')
 
@@ -23,35 +24,43 @@ ROLE_ID4 = 'TEST2_NORMAL'
 
 
 class GlobalRule(BaseRule):
+    identifier = "user_global"
     model = User
-    actions = ALL_ACTIONS
+    name = "Global Rule"
 
-    def scope_filter(self, request):
+    def scope_filter(self, action, context):
         return Q(first_name__isnull=False)
 
 
 class EditCurrentUserRule(BaseRule):
+    identifier = "user_edit_own_profile"
     model = User
-    actions = ['update']
+    name = "Edit only himself"
 
-    def scope_filter(self, request):
-        return Q(pk=request.user.pk)
+    def scope_filter(self, action, context):
+        if action == 'update':
+            return Q(pk=context.user.pk)
+        return Q()
 
 
 class AllActionFrenchPeopleRule(BaseRule):
+    identifier = "user_crud_fr"
     model = User
-    actions = ALL_ACTIONS
+    name = "Can CRUD French users"
 
-    def scope_filter(self, request):
+    def scope_filter(self, action, context):
         return Q(language='fr')
 
 
 class ReadOnlyDupon(BaseRule):
+    identifier = "user_readonly_dupon"
     model = User
-    actions = ['list', 'retrieve']
+    name = "Can Read Dupon users"
 
-    def scope_filter(self, request):
-        return Q(username__icontains='dupon')
+    def scope_filter(self, action, context):
+        if action in ['list', 'retrieve']:
+            return Q(username__icontains='dupon')
+        return Q()
 
 
 class TestAccessPolicy(TestCase):
@@ -99,30 +108,30 @@ class TestAccessPolicy(TestCase):
         )
 
         cls.role_a, cls.role_b, cls.role_c, cls.role_d = UserRole.objects.bulk_create([
-            UserRole(id=ROLE_ID1, name="Normal Role 1"),
-            UserRole(id=ROLE_ID2, name="Super Role 1"),
-            UserRole(id=ROLE_ID3, name="Portal Role 2"),
-            UserRole(id=ROLE_ID4, name="Normal Role 2"),
+            UserRole(id=ROLE_ID1, name="Normal Role 1", rules=[GlobalRule.identifier, EditCurrentUserRule.identifier]),
+            UserRole(id=ROLE_ID2, name="Super Role 1", rules=[GlobalRule.identifier, AllActionFrenchPeopleRule.identifier]),
+            UserRole(id=ROLE_ID3, name="Portal Role 2", rules=[GlobalRule.identifier, ReadOnlyDupon.identifier]),
+            UserRole(id=ROLE_ID4, name="Normal Role 2", rules=[GlobalRule.identifier, AllActionFrenchPeopleRule.identifier, ReadOnlyDupon.identifier]),
         ])
 
 
     def setUp(self):
         super().setUp()
         self._old_rule_registry = access_policy._rule_registry
+        self._old_rule_model_registry = access_policy._rule_model_registry
         access_policy._rule_registry = {}
+        access_policy._rule_model_registry = {}
 
         # register all test rules
         access_policy._register_rule(GlobalRule)
-        access_policy._register_rule(EditCurrentUserRule, [ROLE_ID1])
-        access_policy._register_rule(AllActionFrenchPeopleRule, [ROLE_ID2])
-        access_policy._register_rule(ReadOnlyDupon, [ROLE_ID3])
-
-        access_policy._register_rule(AllActionFrenchPeopleRule, [ROLE_ID4])
-        access_policy._register_rule(ReadOnlyDupon, [ROLE_ID4])
+        access_policy._register_rule(EditCurrentUserRule)
+        access_policy._register_rule(AllActionFrenchPeopleRule)
+        access_policy._register_rule(ReadOnlyDupon)
 
     def tearDown(self):
         super().tearDown()
         access_policy._rule_registry = self._old_rule_registry
+        access_policy._rule_model_registry = self._old_rule_model_registry
 
     @parameterized.expand(
         [
@@ -134,9 +143,11 @@ class TestAccessPolicy(TestCase):
             (USER_ID1, 'specific_action', [ROLE_ID2], [USER_ID1, USER_ID3]),  # global + fr rule
             (USER_ID1, 'list', [ROLE_ID3], [USER_ID4]),  # global + (dupon only)
             (USER_ID1, 'update', [ROLE_ID3], [USER_ID1, USER_ID2, USER_ID3, USER_ID4]),  # global
-            (USER_ID1, 'list', [ROLE_ID4], [USER_ID1, USER_ID3, USER_ID4]),  # global + (dupon only | fr)
+            (USER_ID1, 'list', [ROLE_ID4], []),  # global + dupon only + fr
             (USER_ID1, 'update', [ROLE_ID4], [USER_ID1, USER_ID3]),  # global + fr
             (USER_ID1, 'specific_action', [ROLE_ID4], [USER_ID1, USER_ID3]),  # global + fr
+            (USER_ID1, 'list', [ROLE_ID1, ROLE_ID4], [USER_ID1, USER_ID2, USER_ID3, USER_ID4]),  # global + dupon only
+            (USER_ID1, 'update', [ROLE_ID1, ROLE_ID4], [USER_ID1, USER_ID3]),  # global + dupon only + edit me
         ]
     )
     def test_access_rules_through_roles(self, current_user_id, action, role_ids, expected_pks):
@@ -144,10 +155,9 @@ class TestAccessPolicy(TestCase):
         roles = UserRole.objects.filter(pk__in=role_ids)
 
         user.roles.set(roles)
-
-        request = MockRequest(user)
+        context = Context(user=user)
 
         queryset = User.objects.all()
-        qs = apply_access_rules(request, queryset, action)
+        qs = async_to_sync(apply_access_rules)(queryset, action, context)
 
         self.assertEqual({str(pk) for pk in qs.values_list('pk', flat=True)}, set(expected_pks))
