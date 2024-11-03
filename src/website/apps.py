@@ -11,6 +11,7 @@ class WebsiteConfig(AppConfig):
     def ready(self):
         autodiscover_modules('website_widget')
 
+    populate_dependencies = ["user"]
     populate_fixtures = ["page", "menu", "website", "widget"]
 
     def populate_system(self, size, **kwargs):
