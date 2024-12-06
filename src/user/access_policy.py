@@ -92,7 +92,7 @@ class AccessPolicyRegistry:
         return action in rule.actions
 
 
-async def apply_access_rules(queryset, action, user=None):
+def apply_access_rules(request, queryset, action):
     """ Get all applicable access rules for the given model and apply them on
         current queryset to scope it.
         :param request: http request
@@ -105,8 +105,8 @@ async def apply_access_rules(queryset, action, user=None):
 
     # extract role of current request (API token ignore role rules)
     roles = []
-    if user:
-        roles = [userrole.pk async for userrole in user.roles.all()]
+    if request.user:
+        roles = [userrole.pk for userrole in request.user.roles.all()]
 
     # find applicable rules
     global_rules, role_rules = access_policy.get_rules(queryset.model, roles, action)
