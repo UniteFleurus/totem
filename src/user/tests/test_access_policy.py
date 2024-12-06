@@ -7,9 +7,6 @@ from parameterized import parameterized
 from user.models import User, UserRole
 from user.access_policy import apply_access_rules, access_policy, BaseRule, Context
 
-MockRequest = namedtuple('MockRequest', 'user')
-
-
 USER_ID1 = "14041cce-8719-4637-92b1-51c4ade4b643"
 USER_ID2 = "25f50950-7228-4f40-a68f-3aafdb4e1b67"
 USER_ID3 = "3d9afc04-8ac2-40be-83de-a3c3e171923c"
