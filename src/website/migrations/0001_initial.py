@@ -90,7 +90,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='page',
-            constraint=models.UniqueConstraint(fields=('slug',), name='page_unique_slug'),
+            constraint=models.UniqueConstraint(fields=('slug',), name='page_unique_slug', violation_error_message="A record with that slug already exist. slug must be unique."),
         ),
         migrations.AddConstraint(
             model_name='menu',

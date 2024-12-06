@@ -9,7 +9,7 @@ from ninja_extra.exceptions import NotFound, PermissionDenied, ValidationError
 from ninja_extra.shortcuts import get_object_or_exception
 from pydantic import BaseModel as PydanticModel, ValidationError as PydanticValidationError
 
-from user.access_policy import apply_access_rules_sync
+from user.access_policy import apply_access_rules
 from user.models import User
 from website.models import Page
 from website.filters import PageFilterSchema
@@ -37,7 +37,7 @@ class GenericModelService(ModelService):
 
     def search_read(self, filters: PageFilterSchema = None, user: t.Optional[t.Type[User]] = None, **kwargs: t.Any) -> QuerySet:
         queryset = self.get_queryset(self.LIST)
-        queryset = apply_access_rules_sync(queryset, 'read', user)
+        queryset = apply_access_rules(queryset, 'read', user)
         if filters is not None:
             queryset = filters.filter(queryset)
         return queryset
