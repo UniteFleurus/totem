@@ -26,7 +26,6 @@ DEBUG = env('TOTEM_DEBUG', default=False, boolean=True)
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -36,8 +35,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'oauth2_provider',
     'core',
+    'ninja',
+    'ninja_extra',
+    'oauth2_provider',
     'oauth',
     'user',
     'website',
@@ -169,4 +170,17 @@ OAUTH2_PROVIDER = {
     "DEFAULT_SCOPES": [],
     'ACCESS_TOKEN_EXPIRE_SECONDS': 60 * 60 * 10,
     'REFRESH_TOKEN_EXPIRE_SECONDS': 60 * 60 * 5,  # 5 hours
+}
+
+# Django Ninja
+
+NINJA_PAGINATION_CLASS = "ninja.pagination.LimitOffsetPagination"
+NINJA_PAGINATION_PER_PAGE = 100
+NINJA_PAGINATION_MAX_LIMIT = 500
+
+NINJA_EXTRA={
+    'ORDERING_CLASS': 'core.api.ordering.Ordering',
+    'INJECTOR_MODULES': [
+        'website.services.WebsiteModule',
+    ]
 }
