@@ -19,7 +19,7 @@ class WebsitePublishedMixin(models.Model):
         abstract = True
         constraints = [
             models.UniqueConstraint(
-                fields=['slug'], name='%(class)s_unique_slug'
+                fields=['slug'], name='%(class)s_unique_slug', violation_error_message="A record with that slug already exist. slug must be unique."
             ),
         ]
 

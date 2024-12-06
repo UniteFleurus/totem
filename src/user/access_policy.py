@@ -90,17 +90,23 @@ class AccessPolicyRegistry:
         return action in rule.actions
 
 
-def apply_access_rules(request, queryset, action):
+async def apply_access_rules(request, queryset, action):
     """ Get all applicable access rules for the given model and apply them on
         current queryset to scope it.
         :param request: http request
         :param queryset: django queryset to alter
         :param action: action the request wants to perform on the queryset
     """
+    # find current user
+    user = request.user # might be AnonymousUser
+    if not request.user.is_authenticated:
+        if request.auth and request.auth.user:
+            user = request.auth.user
+
     # extract role of current request (API token ignore role rules)
     roles = []
-    if request.user:
-        roles = [userrole.pk for userrole in request.user.roles.all()]
+    if user:
+        roles = [userrole.pk async for userrole in user.roles.all()]
 
     # find applicable rules
     global_rules, role_rules = access_policy.get_rules(queryset.model, roles, action)
@@ -115,6 +121,42 @@ def apply_access_rules(request, queryset, action):
         queryset = queryset.filter(role_lookups)
 
     return queryset
+
+from collections import namedtuple
+MockRequest = namedtuple('MockRequest', 'user')
+
+
+def apply_access_rules_sync(queryset, action, user=None):
+    """ Get all applicable access rules for the given model and apply them on
+        current queryset to scope it.
+        :param user: current user executing the request. might be AnonymousUser.
+        :param queryset: django queryset to alter
+        :param action: action the request wants to perform on the queryset
+    """
+    # build fake request
+    # TODO : base rule should accept a wrapped User (a Bearer class or something) and not request !
+    user = user or None
+    request = MockRequest(user)
+
+    # extract role of current request (API token ignore role rules)
+    roles = []
+    if user:
+        roles = [userrole.pk for userrole in user.roles.all()]
+
+    # find applicable rules
+    global_rules, role_rules = access_policy.get_rules(queryset.model, roles, action)
+
+    # compute lookups
+    global_lookups = reduce(and_, [Q()] + [r.scope_filter(request) for r in global_rules])
+    role_lookups = reduce(or_, [Q()] + [r.scope_filter(request) for r in role_rules])
+
+    if global_lookups:
+        queryset = queryset.filter(global_lookups)
+    if role_lookups:
+        queryset = queryset.filter(role_lookups)
+
+    return queryset
+
 
 
 access_policy = AccessPolicyRegistry()  # singleton registry of all rules per model
