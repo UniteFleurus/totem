@@ -1,4 +1,4 @@
-Django==5.0.8
+Django==5.0.10
 django-cors-headers==3.14.0
 django-jazzmin==2.6.0
 django-log-request-id==2.1.0
