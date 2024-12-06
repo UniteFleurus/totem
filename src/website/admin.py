@@ -7,7 +7,7 @@ from website.models import Page, Menu, Website, Widget
 # -------------------------------------
 
 class PageAdmin(admin.ModelAdmin):
-    list_display = ("title", "slug", "is_published")
+    list_display = ("title", "slug", "is_published", "user")
 
 
 admin.site.register(Page, PageAdmin)
