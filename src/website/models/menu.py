@@ -93,6 +93,6 @@ class Menu(models.Model):
                     query.format(**params), in_query_params
                 )
         except EmptyResultSet:
-                # Django internal make the `.query.sql_with_params()` raise if no rows are matching
-                # the where clause. This means no row should be updated, so we can ignore that.
-                pass
+            # Django internal make the `.query.sql_with_params()` raise if no rows are matching
+            # the where clause. This means no row should be updated, so we can ignore that.
+            pass

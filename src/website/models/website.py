@@ -15,10 +15,22 @@ class Website(models.Model):
         "Headline", max_length=256, null=False, blank=False
     )
 
-    meta_authors = models.CharField("Meta Author", max_length=256, null=True, blank=True)
+    meta_authors = models.CharField(
+        "Meta Author",
+        max_length=256,
+        null=True,
+        blank=True
+    )
     meta_description = models.TextField("Meta Description", null=True, blank=True)
 
-    menu = models.ForeignKey('website.Menu', verbose_name="Main Menu", null=True, blank=True, on_delete=models.SET_NULL, help_text="Parent item as the main menu of the website.")
+    menu = models.ForeignKey(
+        'website.Menu',
+        verbose_name="Main Menu",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        help_text="Parent item as the main menu of the website."
+    )
 
     footer = fields.HtmlField(
         "Footer Content", null=True, blank=True, sanitize=True

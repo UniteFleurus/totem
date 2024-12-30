@@ -1,4 +1,3 @@
-from typing import Any, List, Tuple, Type
 
 from ninja import Query
 from ninja_extra import (
@@ -11,9 +10,9 @@ from ninja_extra.ordering import ordering
 from core.api import BaseModelController
 from totem.api import api_v1
 from oauth.security import OAuthTokenBearer, TokenHasScope
-from website.filters import PageFilterSchema
-from website.schemas import PageListSchema, PageDetailSchema, PageCreateSchemaIn, PageUpdateSchemaIn
-from website.services import PageModelService
+from website.filters import MenuFilterSchema, PageFilterSchema
+from website.schemas import MenuCreateSchemaIn, MenuListSchema, MenuDetailSchema, MenuUpdateSchemaIn, PageListSchema, PageDetailSchema, PageCreateSchemaIn, PageUpdateSchemaIn
+from website.services import MenuModelService, PageModelService
 
 
 @api_controller('/website/pages/', auth=OAuthTokenBearer())
@@ -26,8 +25,7 @@ class PagesController(BaseModelController):
     @pagination.paginate(pagination.PageNumberPaginationExtra)
     @searching(search_fields=['title'])
     @ordering(ordering_fields=['slug', 'title', 'date_published'], default_fields=['date_published', 'id'])
-    # TODO @queryfield(response_schema=....) and give the ORM field (or annotation) field list aka the validation_alias of response schema model field
-    async def list_pages(self, filters: PageFilterSchema = Query(...), **kwargs):
+    async def list_pages(self, filters: PageFilterSchema = Query(...)):
         """ Get all website pages, or search them. """
         return await self.page_service.search_read_async(filters=filters, user=self.context.request.user)
 
@@ -47,6 +45,61 @@ class PagesController(BaseModelController):
     async def delete_page(self, slug: str):
         return 204, await self.page_service.delete_async(lookup_value=slug, lookup_name='slug', user=self.context.request.user)
 
+
 api_v1.register_controllers(
     PagesController
+)
+
+
+@api_controller('/website/menus/', auth=OAuthTokenBearer())
+class WebsiteMenusController(BaseModelController):
+
+    def __init__(self, menu_service: MenuModelService):
+        self.menu_service = menu_service
+
+    @http_get(
+        "",
+        response=pagination.PaginatedResponseSchema[MenuListSchema],
+        permissions=[TokenHasScope('totem.websitemenu.read')],
+        operation_id="ListWebsiteMenu"
+    )
+    @pagination.paginate(pagination.PageNumberPaginationExtra)
+    @searching(search_fields=['name'])
+    @ordering(
+        ordering_fields=['id', 'name', 'create_date', 'sequence'],
+        default_fields=['sequence', 'name']
+    )
+    async def list_menus(self, filters: MenuFilterSchema = Query(...)):
+        """ Get all website menu, or search them. """
+        return await self.menu_service.search_read_async(filters=filters, user=self.context.request.user)
+
+    @http_post(
+        response={201: MenuDetailSchema},
+        permissions=[TokenHasScope('totem.websitemenu.create')],
+        operation_id="CreateWebsiteMenu"
+    )
+    async def create_menu(self, menu: MenuCreateSchemaIn):
+        return 201, await self.menu_service.create_async(menu, user=self.context.request.user)
+
+    @http_patch(
+        '/{menu_id}/',
+        response=MenuDetailSchema,
+        permissions=[TokenHasScope('totem.websitemenu.update')],
+        operation_id="UpdateWebsiteMenu"
+    )
+    async def update_menu(self, menu_id: str, menu: MenuUpdateSchemaIn):
+        return await self.menu_service.update_async(menu, lookup_value=menu_id, lookup_name='id', user=self.context.request.user)
+
+    @http_delete(
+        '/{menu_id}/',
+        response={204: None},
+        permissions=[TokenHasScope('totem.websitemenu.delete')],
+        operation_id="DeleteWebsiteMenu"
+    )
+    async def delete_menu(self, menu_id: str):
+        return 204, await self.menu_service.delete_async(lookup_value=menu_id, lookup_name='id', user=self.context.request.user)
+
+
+api_v1.register_controllers(
+    WebsiteMenusController
 )
