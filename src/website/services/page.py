@@ -17,8 +17,8 @@ class PageModelService(GenericModelService):
             queryset = queryset.prefetch_related('user')
         return queryset
 
-    def _preprocess_create_values(self, schema: PydanticModel, exclude_unset=True, user: t.Optional[t.Type[User]] = None, **kwargs: t.Any):
-        data = super()._preprocess_create_values(schema, user=user, exclude_unset=exclude_unset, **kwargs)
+    def _create_preprocess_values(self, schema: PydanticModel, exclude_unset=True, user: t.Optional[t.Type[User]] = None, **kwargs: t.Any):
+        data = super()._create_preprocess_values(schema, user=user, exclude_unset=exclude_unset, **kwargs)
         if 'user' not in data and user:
             data['user'] = user
         return data
