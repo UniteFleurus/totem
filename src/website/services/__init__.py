@@ -1,5 +1,6 @@
 from injector import Module, Binder, singleton, inject, provider
 
+from .menu import MenuModelService
 from .page import PageModelService
 
 class WebsiteModule(Module):
@@ -8,5 +9,10 @@ class WebsiteModule(Module):
 
     @provider
     @inject
-    def provide_user_service(self) -> PageModelService:
+    def provide_page_service(self) -> PageModelService:
         return PageModelService()
+
+    @provider
+    @inject
+    def provide_menu_service(self) -> MenuModelService:
+        return MenuModelService()
