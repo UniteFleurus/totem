@@ -1,12 +1,11 @@
+from asgiref.sync import async_to_sync
 from collections import namedtuple
 from django.db.models import Q
 from django.test import TestCase
 from parameterized import parameterized
 
 from user.models import User, UserRole
-from user.access_policy import apply_access_rules, access_policy, BaseRule, ALL_ACTIONS
-
-MockRequest = namedtuple('MockRequest', 'user')
+from user.access_policy import apply_access_rules_sync, access_policy, BaseRule, ALL_ACTIONS
 
 
 USER_ID1 = "14041cce-8719-4637-92b1-51c4ade4b643"
@@ -145,9 +144,7 @@ class TestAccessPolicy(TestCase):
 
         user.roles.set(roles)
 
-        request = MockRequest(user)
-
         queryset = User.objects.all()
-        qs = apply_access_rules(request, queryset, action)
+        qs = apply_access_rules_sync(queryset, action, user=user)
 
         self.assertEqual({str(pk) for pk in qs.values_list('pk', flat=True)}, set(expected_pks))
