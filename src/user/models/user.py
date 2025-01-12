@@ -3,10 +3,12 @@ import uuid
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, UserManager as BaseUserManager
 from django.db import models
+from django.db.models.manager import BaseManager
 
 from base.files.storages import PrivateMediaFileSystemStorage
 from base.models.mixins import CleanupFileQuerysetMixin, CleanupFileModelMixin
 from user import choices, signals
+
 
 
 class UserQuerySet(CleanupFileQuerysetMixin, models.QuerySet):
@@ -27,6 +29,9 @@ class UserQuerySet(CleanupFileQuerysetMixin, models.QuerySet):
             signals.user_change_rights.send(sender=self.__class__, user_qs=self.model.objects.filter(pk__in=pks))
         return results
 
+
+class UserManager(BaseUserManager, BaseManager.from_queryset(UserQuerySet)):
+    pass
 
 # ---------------------------------------------------------------
 # User
@@ -65,7 +70,7 @@ class User(CleanupFileModelMixin, AbstractUser):
         'user.UserRole', related_name='users', through='UserRoleRelation'
     )
 
-    objects = UserQuerySet.as_manager()
+    objects = UserManager()
 
     class Meta:
         constraints = [
