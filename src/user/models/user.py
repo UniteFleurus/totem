@@ -30,7 +30,7 @@ class UserQuerySet(CleanupFileQuerysetMixin, models.QuerySet):
         return results
 
 
-class UserManager(BaseUserManager, BaseManager.from_queryset(UserQuerySet)):
+class UserManager(BaseManager.from_queryset(UserQuerySet), BaseUserManager):
     pass
 
 # ---------------------------------------------------------------
