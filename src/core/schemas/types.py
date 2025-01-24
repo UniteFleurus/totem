@@ -1,9 +1,10 @@
 from dataclasses import dataclass
-from typing import Any, List, Union
+from typing import Any, List, Literal, Union
 from typing_extensions import Annotated
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
+from django.conf import settings
 from ninja.orm.fields import TYPES
 from pydantic_core import CoreSchema, core_schema
 from pydantic import Field, GetCoreSchemaHandler
@@ -14,6 +15,7 @@ from pydantic import Field, GetCoreSchemaHandler
 
 Slug = Annotated[str, Field(pattern=r"^[-a-zA-Z0-9_]+\z")]
 
+Language = Literal[*[item[0] for item in settings.LANGUAGES]]
 
 #-----------------------------------------
 # Relations
