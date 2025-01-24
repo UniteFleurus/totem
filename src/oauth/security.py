@@ -26,7 +26,7 @@ class OAuthTokenBearer(AsyncHttpBearer):
             .filter(token_checksum=token_checksum)
             .afirst()
         )
-        if token.user_id:
+        if token and token.user_id:
             await sync_to_async(prefetch_related_objects)([token.user], 'roles')
             request.user = token.user
         return token
