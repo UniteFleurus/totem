@@ -81,13 +81,30 @@ class GenericModelService(ModelService):
         data.update(kwargs)
         return data
 
-    def _create(self, values):
+    def _create(self, validated_data):
+        # Remove many-to-many relationships from validated_data.
+        # They are not valid arguments to the default `.create()` method,
+        # as they require that the instance has already been saved.
+        many_to_many = {}
+        for f in self.model._meta.get_fields():
+            if getattr(f, 'many_to_many', False) and (f.name in validated_data):
+                many_to_many[f.name] = validated_data.pop(f.name)
+
+        # Create the object
         queryset = self.get_queryset(self.CREATE)
-        # create the object
-        obj = queryset.create(**values)
-        # check if the created obj is in the access rule scope
+        obj = queryset.create(**validated_data)
+
+        # Check if the created obj is in the access rule scope
         if not queryset.filter(pk=obj.pk).exists():
             raise PermissionDenied(f"You are not allowed to create {queryset.model._meta.verbose_name}, due to access rules restriction.")
+
+        # Save many-to-many relationships after the instance is created.
+        if many_to_many:
+            for field_name, value in many_to_many.items():
+                field = getattr(obj, field_name)
+                # as we are in a creation, we don't need to use `.set()` which costs more SQL queries
+                field.add(*value)
+
         return obj
 
     # Update
@@ -121,11 +138,25 @@ class GenericModelService(ModelService):
         data.update(kwargs)
         return data
 
-    def _update(self, instance, values):
-        # TODO : handle m2m fields
-        for attr, value in values.items():
+    def _update(self, instance, validated_data):
+        # Remove many-to-many relationships from validated_data.
+        # They are not valid arguments to the default `.create()` method,
+        # as they require that the instance has already been saved.
+        many_to_many = {}
+        for f in self.model._meta.get_fields():
+            if getattr(f, 'many_to_many', False) and (f.name in validated_data):
+                many_to_many[f.name] = validated_data.pop(f.name)
+
+        # Do the update
+        for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        instance.save(update_fields=list(values))
+        instance.save(update_fields=list(validated_data))
+
+        # Save many-to-many relationships after the instance is created.
+        if many_to_many:
+            for field_name, value in many_to_many.items():
+                field = getattr(instance, field_name)
+                field.set(value)
         return instance
 
     # Delete
