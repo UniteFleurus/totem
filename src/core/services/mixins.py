@@ -4,6 +4,7 @@ from asgiref.sync import sync_to_async
 from django.db import transaction, IntegrityError
 from django.db.models import Model, QuerySet
 from django.core.exceptions import ValidationError as DjangoValidationError
+from ninja import FilterSchema
 from ninja_extra import ModelService
 from ninja_extra.exceptions import NotFound, PermissionDenied, ValidationError
 from ninja_extra.shortcuts import get_object_or_exception
@@ -11,13 +12,11 @@ from pydantic import BaseModel as PydanticModel, ValidationError as PydanticVali
 
 from user.access_policy import apply_access_rules
 from user.models import User
-from website.models import Page
-from website.filters import PageFilterSchema
 
 
 class GenericModelService(ModelService):
 
-    queryset = Page.objects.all()
+    queryset = None
 
     LIST = 'list'
     FIND_ONE = 'find_one'
@@ -35,14 +34,14 @@ class GenericModelService(ModelService):
 
     # List / Retrieve
 
-    def search_read(self, filters: PageFilterSchema = None, user: t.Optional[t.Type[User]] = None, **kwargs: t.Any) -> QuerySet:
+    def search_read(self, filters: FilterSchema = None, user: t.Optional[t.Type[User]] = None, **kwargs: t.Any) -> QuerySet:
         queryset = self.get_queryset(self.LIST)
         queryset = apply_access_rules(queryset, 'read', user)
         if filters is not None:
             queryset = filters.filter(queryset)
         return queryset
 
-    async def search_read_async(self, filters: PageFilterSchema = None, user: t.Optional[t.Type[User]] = None, **kwargs: t.Any) -> QuerySet:
+    async def search_read_async(self, filters: FilterSchema = None, user: t.Optional[t.Type[User]] = None, **kwargs: t.Any) -> QuerySet:
         return await sync_to_async(self.search_read, thread_sensitive=True)(filters=filters, user=user, **kwargs)
 
     def read(self, lookup_value: t.Any, lookup_name: str = 'pk', user: t.Optional[t.Type[User]] = None, **kwargs: t.Any) -> t.Any:
