@@ -1,7 +1,7 @@
 [
 {
     "model": "website.page",
-    "pk": 1,
+    "pk": "09c7b4f5-b436-4c47-bea1-d3e60b9ab492",
     "fields": {
         "is_published": true,
         "date_published": "2024-09-02T19:21:20Z",
@@ -13,7 +13,7 @@
 },
 {
     "model": "website.page",
-    "pk": 2,
+    "pk": "cf612f7c-b35f-4416-8e5f-6c36e7e32e99",
     "fields": {
         "is_published": true,
         "date_published": "2024-09-04T13:21:13Z",
@@ -25,7 +25,7 @@
 },
 {
     "model": "website.page",
-    "pk": 3,
+    "pk": "7063a2d7-2c0b-4350-8120-ae1b237ce7b6",
     "fields": {
         "is_published": false,
         "date_published": null,

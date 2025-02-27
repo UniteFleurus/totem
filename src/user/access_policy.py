@@ -8,6 +8,8 @@ from django.db import models
 
 ALL_ACTIONS = '__all__'
 
+ContextRequest = namedtuple('ContextRequest', 'user')
+
 #------------------------------------------------------
 # Access Rule
 #------------------------------------------------------
@@ -20,7 +22,7 @@ class BaseRule:
     actions = [] # can't be empty
     description = None
 
-    def scope_filter(self, request):
+    def scope_filter(self, request: ContextRequest):
         """Return the lookups to apply on filter. Must be a `Q` expression."""
         return Q()
 
@@ -97,6 +99,10 @@ def apply_access_rules(request, queryset, action):
         :param queryset: django queryset to alter
         :param action: action the request wants to perform on the queryset
     """
+    # build context request
+    user = user or None
+    request = ContextRequest(user)
+
     # extract role of current request (API token ignore role rules)
     roles = []
     if request.user:
@@ -116,5 +122,35 @@ def apply_access_rules(request, queryset, action):
 
     return queryset
 
+
+def apply_access_rules_sync(queryset, action, user=None):
+    """ Get all applicable access rules for the given model and apply them on
+        current queryset to scope it.
+        :param user: current user executing the request. might be AnonymousUser.
+        :param queryset: django queryset to alter
+        :param action: action the request wants to perform on the queryset
+    """
+    # build context request
+    user = user or None
+    request = ContextRequest(user)
+
+    # extract role of current request (API token ignore role rules)
+    roles = []
+    if user:
+        roles = [userrole.pk for userrole in user.roles.all()]
+
+    # find applicable rules
+    global_rules, role_rules = access_policy.get_rules(queryset.model, roles, action)
+
+    # compute lookups
+    global_lookups = reduce(and_, [Q()] + [r.scope_filter(request) for r in global_rules])
+    role_lookups = reduce(or_, [Q()] + [r.scope_filter(request) for r in role_rules])
+
+    if global_lookups:
+        queryset = queryset.filter(global_lookups)
+    if role_lookups:
+        queryset = queryset.filter(role_lookups)
+
+    return queryset
 
 access_policy = AccessPolicyRegistry()  # singleton registry of all rules per model
