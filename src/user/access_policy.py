@@ -89,7 +89,7 @@ access_policy = AccessPolicyRegistry()  # singleton registry
 class CRUDOperation(enum.Enum):
     CREATE = "create"
     UPDATE = "update"
-    FIND_ONE = "find_one"
+    READ = "read"
     DELETE = "delete"
 
 
