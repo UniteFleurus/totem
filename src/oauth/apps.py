@@ -46,6 +46,7 @@ class OAuthConfig(AppConfig):
         backend_scopes = get_scopes_backend()
         for index, user in enumerate(users):
             scopes = backend_scopes.get_user_scopes(user)
+            scopes = list(backend_scopes.get_all_scopes()) # TODO remove me
             tokens.append(
                 AccessToken(
                     pk=uuid.UUID(int=index),

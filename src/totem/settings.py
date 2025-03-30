@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'oauth2_provider',
     'base',
     'core',
+    'ninja',
+    'ninja_extra',
     'oauth',
     'user',
     'website',
@@ -178,3 +180,16 @@ OAUTH2_PROVIDER = {
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOW_CREDENTIALS = True
+
+# Django Ninja
+
+NINJA_PAGINATION_CLASS = "ninja.pagination.LimitOffsetPagination"
+NINJA_PAGINATION_PER_PAGE = 100
+NINJA_PAGINATION_MAX_LIMIT = 500
+
+NINJA_EXTRA={
+    'ORDERING_CLASS': 'core.api.ordering.Ordering',
+    'INJECTOR_MODULES': [
+        'website.services.WebsiteModule',
+    ]
+}

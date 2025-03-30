@@ -22,7 +22,6 @@ class Context(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
-
 # -------------------------------------------------------
 # Access Rules Registry
 # -------------------------------------------------------
@@ -80,26 +79,6 @@ class AccessPolicyRegistry:
     def get_rule_choices(self):
         return {rid: rule.name for rid, rule in self._rule_registry.items()}
 
-    # def get_rules(self, model_cls, roles, action):
-    #     wrapped_rules = self.get_model_rules(model_cls)
-
-    #     global_rules = []
-    #     role_rules = []
-    #     for wrapped_rule in wrapped_rules:
-    #         if wrapped_rule.roles:
-    #             if any(r in wrapped_rule.roles for r in roles): # role intersection
-    #                 if self._match_action_rule(wrapped_rule.rule, action):
-    #                     role_rules.append(wrapped_rule.rule)
-    #         else:  # global rules
-    #             if self._match_action_rule(wrapped_rule.rule, action):
-    #                 global_rules.append(wrapped_rule.rule)
-    #     return global_rules, role_rules
-
-    # def _match_action_rule(self, rule, action):
-    #     if rule.actions == ALL_ACTIONS:
-    #         return True
-    #     return action in rule.actions
-
 
 access_policy = AccessPolicyRegistry()  # singleton registry
 
@@ -110,7 +89,7 @@ access_policy = AccessPolicyRegistry()  # singleton registry
 class CRUDOperation(enum.Enum):
     CREATE = "create"
     UPDATE = "update"
-    FIND_ONE = "find_one"
+    READ = "read"
     DELETE = "delete"
 
 

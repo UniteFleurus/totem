@@ -36,6 +36,9 @@ class UserRole(models.Model):
         help_text="List of access rules applied for this role."
     )
 
+    def __str__(self):
+        return self.id
+
 # ---------------------------------------------------------------
 # User Role Relation
 # ---------------------------------------------------------------
