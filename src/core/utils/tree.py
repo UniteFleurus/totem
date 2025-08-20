@@ -18,8 +18,6 @@ class TreeNode:
         return level
 
     def print_tree(self):
-        print('  '*self.get_level() + '|--', end = '')
-        print(self.data)
         if self.children:
             for each in self.children:
                 each.print_tree()

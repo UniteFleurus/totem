@@ -27,8 +27,8 @@ class Migration(migrations.Migration):
             name='UserRole',
             fields=[
                 ('id', models.CharField(max_length=128, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(choices=user.access_rights.get_all_permission, max_length=255, verbose_name='Name')),
-                ('permissions', django.contrib.postgres.fields.ArrayField(base_field=models.CharField(max_length=128), blank=True, default=list, help_text='List of permissions available for this role.', size=None, validators=[core.validators.validate_unique_choice_array])),
+                ('name', models.CharField(max_length=255, verbose_name='Name')),
+                ('permissions', django.contrib.postgres.fields.ArrayField(base_field=models.CharField(choices=user.access_rights.get_all_permission, max_length=128), blank=True, default=list, help_text='List of permissions available for this role.', size=None, validators=[core.validators.validate_unique_choice_array])),
                 ('rules', django.contrib.postgres.fields.ArrayField(base_field=models.CharField(choices=user.models.user_role.get_rule_choices, max_length=128), blank=True, default=list, help_text='List of access rules applied for this role.', size=None, validators=[core.validators.validate_unique_choice_array])),
             ],
         ),
