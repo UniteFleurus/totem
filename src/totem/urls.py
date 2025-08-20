@@ -20,9 +20,13 @@ from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
 
+from totem.api import api_v1
+
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("", include("base.urls")),
     path("", include("oauth.urls")),
     path("", include("website.urls")),
+    path("api/v1/", api_v1.urls, name="api1"),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

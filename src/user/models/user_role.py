@@ -20,9 +20,9 @@ class UserRole(models.Model):
     id = models.CharField(
         "ID", max_length=128, null=False, blank=False, primary_key=True)
     name = models.CharField(
-        "Name", max_length=255, null=False, blank=False, choices=get_all_permission)
+        "Name", max_length=255, null=False, blank=False)
     permissions = ArrayField(
-        models.CharField(max_length=128, blank=False),
+        models.CharField(max_length=128, blank=False, choices=get_all_permission),
         blank=True,
         default=list,
         validators=[validate_unique_choice_array],
@@ -35,6 +35,7 @@ class UserRole(models.Model):
         validators=[validate_unique_choice_array],
         help_text="List of access rules applied for this role."
     )
+
 
 # ---------------------------------------------------------------
 # User Role Relation
