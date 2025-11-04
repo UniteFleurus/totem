@@ -1,26 +1,29 @@
 [
 {
     "model": "user.userrole",
-    "pk": "SCOUT_CHIEF",
+    "pk": "USERTYPE_ADMIN",
     "fields": {
-        "name": "Chef",
-        "permissions": "[]"
+        "name": "Administrator",
+        "permissions": "[\"totem.user.create\", \"totem.user.read\", \"totem.user.update\", \"totem.user.delete\", \"totem.userrole.read\"]",
+        "rules": "[\"user_manage_all_user\"]"
     }
 },
 {
     "model": "user.userrole",
-    "pk": "SCOUT_BASE_CHIEF",
+    "pk": "USERTYPE_INTERNAL",
     "fields": {
-        "name": "Chef d'Unité",
-        "permissions": "[]"
+        "name": "Internal User",
+        "permissions": "[\"totem.user.read\", \"totem.user.update\", \"totem.userrole.read\"]",
+        "rules": "[\"user_manage_own_profile\"]"
     }
 },
 {
     "model": "user.userrole",
-    "pk": "SCOUT_LEADER",
+    "pk": "USERTYPE_PORTAL",
     "fields": {
-        "name": "Grand Chef",
-        "permissions": "[]"
+        "name": "External User",
+        "permissions": "[\"totem.user.read\", \"totem.user.update\"]",
+        "rules": "[\"user_manage_own_profile\"]"
     }
 }
 ]

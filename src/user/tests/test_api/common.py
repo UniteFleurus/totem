@@ -1,12 +1,11 @@
 from datetime import timedelta
 
 from django.utils import timezone
-
 from oauth2_provider.scopes import get_scopes_backend
 
-from oauth.models import OAuthApp, AccessToken
-from user.models import User
+from oauth.models import AccessToken, OAuthApp
 from user import choices as user_choices
+from user.models import User
 
 USER_ID1 = "c99199ba-8fa5-461e-802e-c303e390f61b"
 USER_ID2 = "401ac0f2-4abe-412c-acf8-9928f0f53edb"

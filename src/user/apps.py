@@ -7,7 +7,6 @@ class UserConfig(AppConfig):
     name = "user"
 
     def ready(self):
-        autodiscover_modules('role_permissions')
-        autodiscover_modules('access_rules')
+        autodiscover_modules('security')
 
     populate_fixtures = ["user_role", "user"]

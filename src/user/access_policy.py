@@ -3,7 +3,7 @@ from collections import namedtuple
 from functools import reduce
 from operator import and_, or_
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import Q
@@ -70,35 +70,25 @@ class AccessPolicyRegistry:
     def get_rules(self, *ids):
         return [rule for rid, rule in self._rule_registry.items() if rid in ids]
 
-    def get_matching_rules(self, rule_ids_by_group, model_cls):
-        result = []
-        for rule_ids in rule_ids_by_group:
-            model_rules = self.get_model_rules(model_cls)
-            result.append([rule for rule in model_rules if rule.identifier in rule_ids])
+    def get_matching_rules(self, model_cls: models.Model, operation: str = None, rule_ids: List[str] = None):
+        result = {}
+        rules = self.get_model_rules(model_cls)
+
+        for rule in rules:
+            if operation is not None:
+                if operation not in rule.operations:
+                    continue
+            if rule_ids is not None:
+                if rule.identifier not in rule_ids:
+                    continue
+            result[rule.identifier] = rule
+
         return result
 
-    def get_rule_choices(self):
+    def get_rule_choices(self, model_name_prefix=False):
+        if model_name_prefix:
+            return {rid: f"{rule.model._meta.verbose_name}: {rule.name}" for rid, rule in self._rule_registry.items()}
         return {rid: rule.name for rid, rule in self._rule_registry.items()}
-
-    # def get_rules(self, model_cls, roles, action):
-    #     wrapped_rules = self.get_model_rules(model_cls)
-
-    #     global_rules = []
-    #     role_rules = []
-    #     for wrapped_rule in wrapped_rules:
-    #         if wrapped_rule.roles:
-    #             if any(r in wrapped_rule.roles for r in roles): # role intersection
-    #                 if self._match_action_rule(wrapped_rule.rule, action):
-    #                     role_rules.append(wrapped_rule.rule)
-    #         else:  # global rules
-    #             if self._match_action_rule(wrapped_rule.rule, action):
-    #                 global_rules.append(wrapped_rule.rule)
-    #     return global_rules, role_rules
-
-    # def _match_action_rule(self, rule, action):
-    #     if rule.actions == ALL_ACTIONS:
-    #         return True
-    #     return action in rule.actions
 
 
 access_policy = AccessPolicyRegistry()  # singleton registry
@@ -109,8 +99,8 @@ access_policy = AccessPolicyRegistry()  # singleton registry
 
 class CRUDOperation(enum.Enum):
     CREATE = "create"
+    READ = "read"
     UPDATE = "update"
-    FIND_ONE = "find_one"
     DELETE = "delete"
 
 
@@ -123,21 +113,21 @@ class BaseRuleMetaclass(type):
         return new_cls
 
 
-class BaseRule:
+class BaseRule(metaclass=BaseRuleMetaclass):
     """
     A base class from which all rule classes should inherit.
     """
-    identifier = BASE_RULE_ID
-    model = None # required
-    name = None # required
-    description = None
+    identifier: str = BASE_RULE_ID
+    model: models.Model = None # required
+    name: str = None # required
+    description: str = None
 
     # List of possible operations for this model. Goal is to avoid
     # too many imports. Depends on what is implemented in the
     # model service.
-    operations = CRUDOperation  # customize if needed
+    operations = List[CRUDOperation]  # customize if needed
 
-    def scope_filter(self, action: str, context: Context):
+    def scope_filter(self, context: Context) -> Q:
         """Return the lookups to apply on filter. Must be a `Q` expression."""
         return Q()
 
@@ -146,16 +136,20 @@ class BaseRule:
 #------------------------------------------------------
 
 async def request_to_context(request):
-    return Context(user=request.user or None) # force none instead of Anonymous user
+    user = None  # force none instead of Anonymous user
+    if request.auth and hasattr(request.auth, "user"):
+        user = request.auth.user
+    return Context(user=user)
 
 
-async def apply_access_rules(queryset, action, context: Context):
+async def apply_access_rules(queryset: models.QuerySet, operation: str, context: Context):
     """ Apply access rules for the given model and apply them on
         current queryset to scope it.
+        Assembled as (Role1_ruleA & Role1_ruleB) || (Role2_rule2 & Role2_rule4)
         :param queryset: django queryset to alter
         :param action: operation (string) to check
     """
-    # extract role of current context (API token ignore role rules)
+    # Extract role of current context (API token ignores role rules)
     roles = []
     if context.user:
         roles = [userrole async for userrole in context.user.roles.all()]
@@ -164,17 +158,26 @@ async def apply_access_rules(queryset, action, context: Context):
     for role in roles:
         rule_groups.append(list(role.rules) if role.rules is not None else list())
 
-    # find rule to apply
-    rule_group_to_apply = access_policy.get_matching_rules(rule_groups, queryset.model)
+    # Flatten list to find rule to apply
+    role_rule_ids = [element for innerList in rule_groups for element in innerList]
+    matching_rule_maps = access_policy.get_matching_rules(queryset.model, operation=operation, rule_ids=role_rule_ids)
 
-    # compute lookups
-    # Assembled as (ruleA_role1 & ruleB_role1) || (ruleA_role2 & ruleC_role2)
-    rule_lookups = []
-    for rule_to_apply in rule_group_to_apply:
-        rule_lookups.append(reduce(and_, [Q()] + [r.scope_filter(action, context) for r in rule_to_apply]))
+    # Combine role rules with logical AND
+    lookups = []
+    for role_rules in rule_groups:
+        q_expr = Q()
+        for rule_id in role_rules:
+            rule_to_apply = matching_rule_maps.get(rule_id)
+            if rule_to_apply:
+                q_expr = q_expr & rule_to_apply.scope_filter(context)
 
-    rule_lookups = reduce(or_, rule_lookups)
-    if rule_lookups:
-        queryset = queryset.filter(rule_lookups)
+        if q_expr:
+            lookups.append(q_expr)
+
+    # Combine Q-lookups with logical OR
+    if lookups:
+        rule_lookup = reduce(or_, lookups)
+        if rule_lookup:
+            queryset = queryset.filter(rule_lookup)
 
     return queryset

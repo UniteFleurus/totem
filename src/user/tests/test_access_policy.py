@@ -23,32 +23,33 @@ ROLE_ID3 = 'TEST2_PORTAL'
 ROLE_ID4 = 'TEST2_NORMAL'
 
 
-class GlobalRule(BaseRule):
+class GlobalRule():
     identifier = "user_global"
     model = User
     name = "Global Rule"
+    operations = ["read", "create", "update", "delete"]
 
-    def scope_filter(self, action, context):
+    def scope_filter(self, context):
         return Q(first_name__isnull=False)
 
 
-class EditCurrentUserRule(BaseRule):
+class EditCurrentUserRule():
     identifier = "user_edit_own_profile"
     model = User
     name = "Edit only himself"
+    operations = ["update"]
 
-    def scope_filter(self, action, context):
-        if action == 'update':
-            return Q(pk=context.user.pk)
-        return Q()
+    def scope_filter(self, context):
+        return Q(pk=context.user.pk)
 
 
-class AllActionFrenchPeopleRule(BaseRule):
+class AllActionFrenchPeopleRule():
     identifier = "user_crud_fr"
     model = User
     name = "Can CRUD French users"
+    operations = ["read", "create", "update", "delete"]
 
-    def scope_filter(self, action, context):
+    def scope_filter(self, context):
         return Q(language='fr')
 
 
@@ -56,11 +57,10 @@ class ReadOnlyDupon(BaseRule):
     identifier = "user_readonly_dupon"
     model = User
     name = "Can Read Dupon users"
+    operations = ["read"]
 
-    def scope_filter(self, action, context):
-        if action in ['list', 'retrieve']:
-            return Q(username__icontains='dupon')
-        return Q()
+    def scope_filter(self, context):
+        return Q(username__icontains='dupon')
 
 
 class TestAccessPolicy(TestCase):
@@ -114,7 +114,6 @@ class TestAccessPolicy(TestCase):
             UserRole(id=ROLE_ID4, name="Normal Role 2", rules=[GlobalRule.identifier, AllActionFrenchPeopleRule.identifier, ReadOnlyDupon.identifier]),
         ])
 
-
     def setUp(self):
         super().setUp()
         self._old_rule_registry = access_policy._rule_registry
@@ -135,18 +134,18 @@ class TestAccessPolicy(TestCase):
 
     @parameterized.expand(
         [
-            (USER_ID1, 'list', [ROLE_ID1], [USER_ID1, USER_ID2, USER_ID3, USER_ID4]), # only global rule
+            (USER_ID1, 'read', [ROLE_ID1], [USER_ID1, USER_ID2, USER_ID3, USER_ID4]), # only global rule
             (USER_ID1, 'update', [ROLE_ID1], [USER_ID1]), # global + edit me
             (USER_ID3, 'update', [ROLE_ID1], [USER_ID3]), # global + edit me
-            (USER_ID1, 'list', [ROLE_ID2], [USER_ID1, USER_ID3]),  # global + fr rule
+            (USER_ID1, 'read', [ROLE_ID2], [USER_ID1, USER_ID3]),  # global + fr rule
             (USER_ID1, 'update', [ROLE_ID2], [USER_ID1, USER_ID3]),  # global + (fr rule | edit me)
-            (USER_ID1, 'specific_action', [ROLE_ID2], [USER_ID1, USER_ID3]),  # global + fr rule
-            (USER_ID1, 'list', [ROLE_ID3], [USER_ID4]),  # global + (dupon only)
+            (USER_ID1, 'specific_action', [ROLE_ID2], [USER_ID1, USER_ID2, USER_ID3, USER_ID4, USER_ID5]),  # no operation matching --> no rule, allow all
+            (USER_ID1, 'read', [ROLE_ID3], [USER_ID4]),  # global + (dupon only)
             (USER_ID1, 'update', [ROLE_ID3], [USER_ID1, USER_ID2, USER_ID3, USER_ID4]),  # global
-            (USER_ID1, 'list', [ROLE_ID4], []),  # global + dupon only + fr
+            (USER_ID1, 'read', [ROLE_ID4], []),  # global + dupon only + fr
             (USER_ID1, 'update', [ROLE_ID4], [USER_ID1, USER_ID3]),  # global + fr
-            (USER_ID1, 'specific_action', [ROLE_ID4], [USER_ID1, USER_ID3]),  # global + fr
-            (USER_ID1, 'list', [ROLE_ID1, ROLE_ID4], [USER_ID1, USER_ID2, USER_ID3, USER_ID4]),  # global + dupon only
+            (USER_ID1, 'specific_action', [ROLE_ID4], [USER_ID1, USER_ID2, USER_ID3, USER_ID4, USER_ID5]),  # no operation matching --> no rule, allow all
+            (USER_ID1, 'read', [ROLE_ID1, ROLE_ID4], [USER_ID1, USER_ID2, USER_ID3, USER_ID4]),  # global + dupon only
             (USER_ID1, 'update', [ROLE_ID1, ROLE_ID4], [USER_ID1, USER_ID3]),  # global + dupon only + edit me
         ]
     )
