@@ -55,6 +55,10 @@ class Migration(migrations.Migration):
             managers=[
                 ('objects', user.models.user.UserManager()),
             ],
+            options={
+                "verbose_name": "User",
+                "verbose_name_plural": "Users",
+            },
         ),
         migrations.CreateModel(
             name='UserRoleRelation',

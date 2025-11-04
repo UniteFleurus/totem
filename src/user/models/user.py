@@ -73,6 +73,8 @@ class User(CleanupFileModelMixin, AbstractUser):
     objects = UserManager()
 
     class Meta:
+        verbose_name = "User"
+        verbose_name_plural = "Users"
         constraints = [
             models.UniqueConstraint(
                 fields=["username"],

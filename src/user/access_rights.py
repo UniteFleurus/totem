@@ -5,9 +5,10 @@ from django.core.exceptions import ImproperlyConfigured
 
 
 __all__ = [
-    'register_permission',
-    'get_all_permission',
-    'get_public_permission',
+    "register_permission",
+    "get_all_permission",
+    "get_public_permission",
+    "get_permission_choices",
 ]
 
 
@@ -48,4 +49,11 @@ def get_public_permission():
     for perm, record in _PERMISSIONS.items():
         if record.is_public:
             result.append((perm, record.description))
+    return result
+
+
+def get_permission_choices():
+    result = []
+    for perm, record in _PERMISSIONS.items():
+        result.append((perm, record.permission))
     return result

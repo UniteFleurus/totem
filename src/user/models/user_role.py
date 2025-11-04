@@ -1,12 +1,12 @@
-from django.db.models.expressions import RawSQL
-from django.db import models
 from django.contrib.postgres.fields import ArrayField
+from django.db import models
+from django.db.models.expressions import RawSQL
 
 from core.validators import validate_unique_choice_array
 from user import signals
 from user.access_policy import access_policy
-from user.models import User
 from user.access_rights import get_all_permission
+from user.models import User
 
 # ---------------------------------------------------------------
 # User Role

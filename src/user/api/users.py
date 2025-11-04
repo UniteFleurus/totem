@@ -1,48 +1,57 @@
-# examples/views/department_views.py
 from typing import List
 
-from ninja import NinjaAPI, Router
-from ninja_crud import views, viewsets
+from ninja import FilterSchema, Schema
 
-from core.api import ModelAPIViewSet
+from core.api import route, Route, ModelController
+from totem.api import api_v1
 from oauth.authentication import OAuthTokenAuthentication
-from user.filters import UserFilterSchema
 from user.models import User
-from user.schemas import UserCreateSchema, UserUpdateSchema, UserSchema
-
-router_v1_users = Router()
-
-from core.api.permission import BasePermission
+from user.schemas import UserCreateSchema, UserUpdateSchema, UserSchema, UserProfileSchema, UserFilterSchema, ProfilePathParam
+from user.security import IsAuthenticated, TokenHasScopePermissionModelControllerMixin
 
 
-class UserViewSet(ModelAPIViewSet):
-    api = router_v1_users
+class UserController(TokenHasScopePermissionModelControllerMixin, ModelController):
+    api = api_v1
     model = User
 
-    authentication_classes = [OAuthTokenAuthentication]
-    permission_classes = [BasePermission]
+    path_prefix = "/users/"
+    auth = [OAuthTokenAuthentication()]
+    permission_map = {
+        "read": ["totem.user.read"],
+        "create": ["totem.user.create"],
+        "update": ["totem.user.update"],
+        "delete": ["totem.user.delete"],
+    }
 
-    filter_class = UserFilterSchema
-    ordering_fields = ["username", "email", "first_name"]
-    default_ordering_fields = ["username"]
+    list_response_schema: Schema = List[UserSchema]
+    list_filter_schema: FilterSchema = UserFilterSchema
+    list_ordering_fields = ["username", "email", "first_name", "is_active", "date_joined"]
+    list_ordering_default_fields = ["username"]
 
-    list_response_body = List[UserSchema]
-    retrieve_response_body = UserSchema
+    retrieve_response_schema: Schema = UserSchema
 
-    create_request_body = UserCreateSchema
-    create_response_body = UserSchema
+    create_request_schema = UserCreateSchema
+    create_response_schema = UserSchema
 
-    update_request_body = UserUpdateSchema
-    update_response_body = UserSchema
+    update_request_schema = UserUpdateSchema
+    update_response_schema = UserSchema
 
-    # Define all CRUD operations with minimal code
-    # list_departmencacts = views.ListView(response_body=List[UserDisplayNameSchema])
-    # create_department = views.CreateView(request_body=DepartmentIn, response_body=DepartmentOut)
-    # read_department = views.ReadView(response_body=DepartmentOut)
-    # update_department = views.UpdateView(request_body=DepartmentIn, response_body=DepartmentOut)
-    # delete_department = views.DeleteView()
+    # Overrides
 
-# # You can still add custom endpoints as needed using pure Django Ninja syntax
-# @api.get("/stats/")
-# def get_department_stats(request):
-#     return {"total": Department.objects.count()}
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.action == "list":
+            queryset = queryset.prefetch_related("roles")
+        return queryset
+
+    # Actions
+
+    @route.get("/me/", response=UserProfileSchema, permissions=[IsAuthenticated])
+    def profile_read(self, request):
+        return request.auth.user
+
+    @route.patch("/me/", response=UserProfileSchema, permissions=[IsAuthenticated])
+    def profile_update(self, request, body: UserProfileSchema):
+        path_parameters = ProfilePathParam(id=request.auth.user.pk)
+        instance = self.update(request, path_parameters, body)
+        return instance

@@ -1,14 +1,18 @@
-from typing import List, Literal, Optional
-from typing_extensions import Annotated
+from typing import Optional
 
-from ninja.orm import create_schema
-from ninja import ModelSchema
-from pydantic import EmailStr, Field, UUID4
+from ninja import FilterSchema, ModelSchema, Schema
+from pydantic import UUID4, Field
 
 from core.schemas.factory import create_request_schema, create_response_schema
-from core.schemas.queryset import QuerySet
-from user.models import User, UserRole
-from user import choices
+from user.models import User
+
+# ----------------------------------------------------
+# User
+# ----------------------------------------------------
+
+
+class ProfilePathParam(Schema):
+    id: UUID4
 
 
 class UserDisplayNameSchema(ModelSchema):
@@ -16,21 +20,80 @@ class UserDisplayNameSchema(ModelSchema):
 
     class Meta:
         model = User
-        fields = ['id', 'username']
+        fields = ["id", "username"]
 
 
-UserSchema = create_response_schema(User, fields=["id", "username", "last_name", "first_name", "email", "user_type", "language", "is_active", "avatar", "roles"], optional_fields="__all__")
-UserCreateSchema = create_request_schema(User, fields=["username", "password", "last_name", "first_name", "email", "user_type", "language", "avatar", "roles"])
-UserUpdateSchema = create_request_schema(User, fields=["username", "password", "last_name", "first_name", "email", "user_type", "language", "avatar", "roles"], optional_fields="__all__")
+UserSchema = create_response_schema(
+    User,
+    fields=[
+        "id",
+        "username",
+        "last_name",
+        "first_name",
+        "email",
+        "is_active",
+        "user_type",
+        "language",
+        "avatar",
+        "roles",
+    ],
+    optional_fields="__all__",
+)
+UserCreateSchema = create_request_schema(
+    User,
+    fields=[
+        "username",
+        "last_name",
+        "first_name",
+        "email",
+        "user_type",
+        "language",
+        "avatar",
+        "roles",
+    ],
+)
+UserUpdateSchema = create_request_schema(
+    User,
+    fields=[
+        "username",
+        "last_name",
+        "first_name",
+        "email",
+        "user_type",
+        "language",
+        "avatar",
+        "roles",
+    ],
+    optional_fields="__all__",
+)
+
+UserProfileSchema = create_request_schema(
+    User,
+    fields=["id", "last_name", "first_name", "email", "language", "avatar"],
+    optional_fields="__all__",
+)
 
 
-# class UserCreateSchema(ModelSchema):
+class UserFilterSchema(FilterSchema):
+    username: Optional[str] = Field(
+        None,
+        q="username__icontains",
+        title="Username",
+        description="Search term in the username.",
+    )
+    email: Optional[str] = Field(
+        None,
+        q="email__icontains",
+        title="Email",
+        description="Search term in the email.",
+    )
+    is_active: Optional[bool] = Field(
+        None, title="Is the user activated.", description="Search active or not users."
+    )
 
-#     roles: QuerySet[UserRole]
-#     # roles = Annotated[ManyToManyFromSlug(UserRole.objects.all()), Field(title="caca")]
-
-#     class Meta:
-#         model = User
-#         fields = ["username", "password", "last_name", "first_name", "email", "user_type", "language", "avatar", "roles"]
-
-
+    search: Optional[str] = Field(
+        None,
+        q=["username__icontains", "email__icontains"],
+        title="Search Term",
+        description="Search term in the username or in the email.",
+    )
