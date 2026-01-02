@@ -21,5 +21,5 @@ class Page(WebsitePublishedMixin):
         verbose_name_plural = "Pages"
         constraints = WebsitePublishedMixin.Meta.constraints
 
-    def __str__(self):
+    def __str__(self):  # pylint: disable=E0307
         return self.title

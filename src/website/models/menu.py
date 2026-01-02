@@ -1,4 +1,5 @@
 import uuid
+
 from django.core.exceptions import EmptyResultSet
 from django.db import connection, models
 from django.db.models import Q
@@ -54,7 +55,7 @@ class Menu(models.Model):
         if old_parent_path:
             self.recompute_parent_store(type(self).objects.filter(parent_path__startswith=str(old_parent_path)))
 
-    def __str__(self):
+    def __str__(self) -> str:  # pylint: disable=E0307
         return self.name
 
     @classmethod
@@ -66,7 +67,7 @@ class Menu(models.Model):
         return tree
 
     @classmethod
-    def recompute_parent_store(self, qs):
+    def recompute_parent_store(cls, qs):
         query = """
             WITH RECURSIVE __parent_store_compute(id, parent_path) AS (
                 SELECT row.id, concat(row.id, '/')
@@ -93,6 +94,6 @@ class Menu(models.Model):
                     query.format(**params), in_query_params
                 )
         except EmptyResultSet:
-                # Django internal make the `.query.sql_with_params()` raise if no rows are matching
-                # the where clause. This means no row should be updated, so we can ignore that.
-                pass
+            # Django internal make the `.query.sql_with_params()` raise if no rows are matching
+            # the where clause. This means no row should be updated, so we can ignore that.
+            pass
