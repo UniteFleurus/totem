@@ -2,15 +2,14 @@ import enum
 from collections import namedtuple
 from functools import reduce
 from operator import and_, or_
-from pydantic import BaseModel
-from typing import Optional, List
+from typing import List, Optional
 
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models import Q
 from django.db import models
+from django.db.models import Q
+from pydantic import BaseModel
 
 from user.models import User
-
 
 ALL_ACTIONS = '__all__'
 BASE_RULE_ID = '__base_rule__'
@@ -90,12 +89,15 @@ class AccessPolicyRegistry:
             return {rid: f"{rule.model._meta.verbose_name}: {rule.name}" for rid, rule in self._rule_registry.items()}
         return {rid: rule.name for rid, rule in self._rule_registry.items()}
 
+    def get_all_rules(self):
+        return self._rule_registry.values()
+
 
 access_policy = AccessPolicyRegistry()  # singleton registry
 
-#------------------------------------------------------
+# ------------------------------------------------------
 # Access Rule
-#------------------------------------------------------
+# ------------------------------------------------------
 
 class CRUDOperation(enum.Enum):
     CREATE = "create"
@@ -131,9 +133,9 @@ class BaseRule(metaclass=BaseRuleMetaclass):
         """Return the lookups to apply on filter. Must be a `Q` expression."""
         return Q()
 
-#------------------------------------------------------
+# ------------------------------------------------------
 # API
-#------------------------------------------------------
+# ------------------------------------------------------
 
 async def request_to_context(request):
     user = None  # force none instead of Anonymous user
