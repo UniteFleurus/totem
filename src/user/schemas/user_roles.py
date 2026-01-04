@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from ninja import FilterSchema
+from ninja import FilterSchema, Schema
 from pydantic import Field
 
 from core.schemas.factory import create_response_schema
@@ -43,3 +43,18 @@ class UserRoleFilterSchema(FilterSchema):
         title="Search Term",
         description="Search term in the name.",
     )
+
+# ----------------------------------------------------
+# Permission and Rules
+# ----------------------------------------------------
+
+
+class PermissionSchema(Schema):
+    id: str = Field(description="Technical name of the permission (identifier).")
+    name: str = Field(description="Title of the permission.")
+
+
+class AccessRuleSchema(Schema):
+    id: str
+    name: str = Field(description="Title of the access rule.")
+    description: str = Field(description="Description of the access rules.")

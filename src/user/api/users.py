@@ -2,11 +2,18 @@ from typing import List
 
 from ninja import FilterSchema, Schema
 
-from core.api import route, Route, ModelController
-from totem.api import api_v1
+from core.api import ModelController, Route, route
 from oauth.authentication import OAuthTokenAuthentication
+from totem.api import api_v1
 from user.models import User
-from user.schemas import UserCreateSchema, UserUpdateSchema, UserSchema, UserProfileSchema, UserFilterSchema, ProfilePathParam
+from user.schemas import (
+    ProfilePathParam,
+    UserCreateSchema,
+    UserFilterSchema,
+    UserProfileSchema,
+    UserSchema,
+    UserUpdateSchema,
+)
 from user.security import IsAuthenticated, TokenHasScopePermissionModelControllerMixin
 
 
@@ -46,11 +53,15 @@ class UserController(TokenHasScopePermissionModelControllerMixin, ModelControlle
 
     # Actions
 
-    @route.get("/me/", response=UserProfileSchema, permissions=[IsAuthenticated])
+    @route.get(
+        "/me/", response=UserProfileSchema, permissions=[IsAuthenticated], tags=["User"]
+    )
     def profile_read(self, request):
         return request.auth.user
 
-    @route.patch("/me/", response=UserProfileSchema, permissions=[IsAuthenticated])
+    @route.patch(
+        "/me/", response=UserProfileSchema, permissions=[IsAuthenticated], tags=["User"]
+    )
     def profile_update(self, request, body: UserProfileSchema):
         path_parameters = ProfilePathParam(id=request.auth.user.pk)
         instance = self.update(request, path_parameters, body)

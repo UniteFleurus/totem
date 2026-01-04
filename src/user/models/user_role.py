@@ -36,6 +36,10 @@ class UserRole(models.Model):
         help_text="List of access rules applied for this role."
     )
 
+    class Meta:
+        verbose_name = "User Role"
+        verbose_name_plural = "User Roles"
+
 
 # ---------------------------------------------------------------
 # User Role Relation
