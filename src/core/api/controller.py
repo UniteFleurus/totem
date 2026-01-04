@@ -126,6 +126,7 @@ class BaseModelController(BaseController):
         description: str = None,
         decorators: t.List[t.Callable] = None,
         view_wrapper: t.Callable = None,
+        tags: t.Optional[t.List[str]] = None,
     ):
         """This method decorates the given function with the route obj. This is required for the
         method to be added to the API.
@@ -147,6 +148,7 @@ class BaseModelController(BaseController):
             summary=summary,
             description=description,
             decorators=decorators,
+            tags=tags,
         )
         route.set_controller(cls())
         setattr(view_func, MAGIC_ROUTE_ATTR, route)
@@ -224,6 +226,7 @@ class ListModelControllerMixin:
                 summary=f"List {cls.model._meta.verbose_name_plural.capitalize()}",
                 decorators=decorators,
                 view_wrapper=cls._annotate_list_view_function,
+                tags=[cls.model._meta.verbose_name],
             )
 
         super().add_routes_to(router)
@@ -287,6 +290,7 @@ class RetrieveModelControllerMixin:
                 summary=f"Retrieve {cls.model._meta.verbose_name.capitalize()}",
                 decorators=decorators,
                 view_wrapper=cls._annotate_retrieve_view_function,
+                tags=[cls.model._meta.verbose_name],
             )
 
         super().add_routes_to(router)
@@ -335,6 +339,7 @@ class CreateModelControllerMixin:
                 summary=f"Create {cls.model._meta.verbose_name.capitalize()}",
                 decorators=decorators,
                 view_wrapper=cls._annotate_create_view_function,
+                tags=[cls.model._meta.verbose_name],
             )
 
         super().add_routes_to(router)
@@ -432,6 +437,7 @@ class UpdateModelControllerMixin:
                 summary=f"Update {cls.model._meta.verbose_name.capitalize()}",
                 decorators=decorators,
                 view_wrapper=cls._annotate_update_view_function,
+                tags=[cls.model._meta.verbose_name],
             )
 
         super().add_routes_to(router)
@@ -521,6 +527,7 @@ class DeleteModelControllerMixin:
                 summary=f"Delete {cls.model._meta.verbose_name.capitalize()}",
                 decorators=decorators,
                 view_wrapper=cls._annotate_delete_view_function,
+                tags=[cls.model._meta.verbose_name],
             )
 
         super().add_routes_to(router)
