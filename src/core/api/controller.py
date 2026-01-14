@@ -111,6 +111,7 @@ class BaseController:
 class BaseModelController(BaseController):
 
     model: Model = None
+    path_model = None
 
     # Route Helpers
 
@@ -158,6 +159,9 @@ class BaseModelController(BaseController):
         path = normalize_path(cls.path_prefix + path)
         path_params = get_path_param_names(path)
         func_params = t.get_type_hints(view_func)
+
+        if path_params and cls.path_model is not None:
+            return cls.path_model
 
         schema_fields = {}
         for param in path_params:
