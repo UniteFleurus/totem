@@ -195,7 +195,22 @@ class BaseModelController(BaseController):
     # Data Validation
 
     def validate_data(self, request_body: BaseModel, instance: Model = None):
-        return request_body.model_dump(exclude_unset=bool(instance))
+        """
+        :param request:body: model instance of pydantic schema. This is already validate (done during instanciation). Values are python obj.
+        :param instance: the django model instance to validate the data against if given. None in case of creation.
+
+        Note: don't use `model_dump` as it will serialize m2m relations (`core.schemas.QuerySet`) into a list of pk scalar type.
+        """
+        if instance:
+            fields = request_body.model_fields_set
+        else:
+            fields = set(request_body.model_fields)
+
+        # TODO: maybe use alias ?
+        values = {}
+        for fname in fields:
+            values[fname] = getattr(request_body, fname, None)
+        return values
 
 
 # -------------------------------------------
@@ -398,13 +413,19 @@ class CreateModelControllerMixin:
                     "Your access rules prevent you to create this object."
                 )
 
-            # Save many-to-many relationships after the instance is created.
+            # Save many-to-many relationships after the instance is created, and set it in the prefetch cache
             if many_to_many:
+                prefetched_objects = getattr(instance, "_prefetched_objects_cache", {})
                 for field_name, value in many_to_many.items():
                     field = getattr(instance, field_name)
-                    field.add(
-                        *value
-                    )  # optimization: `set` will cause a read but since we are in a creation, there is no exsting relations
+                    # optimization: `set` will cause a read but since we are in a creation,
+                    # there is no exsting relations.
+                    field.add(*value)
+                    # Set in cache in order to avoid refetching the m2m relation when serializing.
+                    # This can be done since we are in creation mode. m2m cache value is a django queryset.
+                    prefetched_objects[field_name] = value
+
+                setattr(instance, "_prefetched_objects_cache", prefetched_objects)
 
             # Postprocess
             self._create_postprocess(request, instance)

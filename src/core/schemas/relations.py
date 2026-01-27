@@ -1,252 +1,243 @@
-from dataclasses import dataclass
-from typing import Any, List, Literal, Union
-from typing_extensions import Annotated
+# pylint: disable=protected-access,unused-argument
+from typing import Any, Callable, List, Optional, TypeVar, Union
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import models
-from django.conf import settings
-from ninja.orm.fields import TYPES
-from pydantic_core import CoreSchema, core_schema
-from pydantic import Field, GetCoreSchemaHandler
+from django.db import models as django_models
+from pydantic import GetJsonSchemaHandler, SerializationInfo, TypeAdapter
+from pydantic.json_schema import JsonSchemaValue
+from pydantic_core import core_schema as cs
+
+T = TypeVar("T", bound=django_models.Model)
+
+# This file provides pydantic field for Django model relations, including ForeignKey and ManyToManyField.
+# https://docs.pydantic.dev/latest/concepts/json_schema/#implementing-__get_pydantic_core_schema__
 
 
-#-----------------------------------------
-# Serialization (from django record to representation)
-#-----------------------------------------
-
-@dataclass(frozen=True)
-class ManyToOne:
-
-    queryset: models.QuerySet
-    slug_field: str = 'pk'
-    only_fields: Union[None, List[str]] = None
-
-    def __get_pydantic_core_schema__(
-        self, source_type: Any, handler: GetCoreSchemaHandler
-    ) -> CoreSchema:
-
-        if self.slug_field == 'pk':
-            model_field = self.queryset.model._meta.pk
-        else:
-            model_field = self.queryset.model._meta.get_field(self.slug_field)
-
-        internal_type = model_field.get_internal_type()
-        _type = TYPES.get(internal_type, int)
-
-        from_any_schema = core_schema.chain_schema(
-            [
-                handler(_type),
-                core_schema.no_info_plain_validator_function(self.fetch_object),
-            ]
-        )
-
-        return core_schema.json_or_python_schema(
-            json_schema=from_any_schema, #core_schema.no_info_plain_validator_function(self.fetch_object),
-            python_schema=core_schema.no_info_after_validator_function(
-                self.fetch_object, handler(_type)
-            ),
-            serialization=core_schema.plain_serializer_function_ser_schema(
-                self._identity
-            ),
-        )
-
-    def _identity(self, instance):
-        return instance
-
-    def fetch_object(self, value: Any):
-        queryset = self.queryset
-        if self.only_fields:
-            queryset = queryset.only(*self.only_fields)
-
-        try:
-            result = queryset.get(**{self.slug_field: value})
-        except ObjectDoesNotExist as exc:
-            raise ValueError(f"No {queryset.model._meta.verbose_name.lower()} found.") from exc
-        return result
+def _get_lookup_field_instance(model_class, lookup_field):
+    """Return the django model field instance for the given lookup field name.
+    :param model_class: the django model class
+    :param lookup_field: the lookup field name, can be "pk" for primary key
+    """
+    lookup_fname = lookup_field
+    if lookup_field == "pk":
+        lookup_fname = model_class._meta.pk.name
+    return model_class._meta.get_field(lookup_fname)
 
 
-# TODO read me !!
-# https://github.com/bnznamco/django-structured-field/blob/master/structured/pydantic/fields/queryset.py
+def _get_lookup_field_type_adapter(model_class, lookup_field):
+    # avoid circular dependency
+    from .fields import convert_db_field  # pylint: disable=wrong-import-position
+
+    python_type, dummy = convert_db_field(
+        _get_lookup_field_instance(model_class, lookup_field)
+    )
+    return TypeAdapter(python_type)
 
 
-
-from typing import Annotated, Any, Callable
-
-
-@dataclass(frozen=True)
-class ManyToManyFromSlugTest:
-    func: Callable[[Any], Any]
-
-    def __get_pydantic_core_schema__(
-        self, source_type: Any, handler: GetCoreSchemaHandler
-    ) -> CoreSchema:
-        return core_schema.no_info_after_validator_function(
-            self.func, handler(source_type)
-        )
+# ----------------------------------------------------------------
+# Many-to-One (ForeignKey)
+# ----------------------------------------------------------------
 
 
-# ManyToManyFromSlugTest = Annotated[list[str], ManyToManyFromSlugTestKK(lambda x: x)]
+def create_foreignkey_field(model_class, optional: bool, lookup_fname: str = None):
+    lookup_fname = lookup_fname or "pk"  # force not None
 
-# class TestMe(RootModel):
-#     root: list[int]
-#     @classmethod
-#     def __get_pydantic_core_schema__(
-#         cls, source_type: Any, handler: GetCoreSchemaHandler
-#     ) -> CoreSchema:
-#         print('==============', source_type, handler)
-#         return super().__get_pydantic_core_schema__(source_type, handler)
-#     def validate(self, value):
-#         print('#######', value)
-#         return super().validate(value)
+    class CustomForeignKey(ForeignKey):
+        model = model_class
+        lookup_field = lookup_fname
+
+    if optional:
+        return Optional[CustomForeignKey]
+    return CustomForeignKey
 
 
-@dataclass(frozen=True)
-class ManyToManyFromSlug:
+class ForeignKey:
 
-    queryset: models.QuerySet
-    slug_field: str = 'pk'
+    model: django_models.QuerySet
+    lookup_field: str = "pk"
     only_fields: Union[None, List[str]] = None
 
     @classmethod
     def __get_pydantic_core_schema__(
         cls,
-        _source_type: Any,
-        _handler: GetCoreSchemaHandler,
-    ) -> core_schema.CoreSchema:
+        source_type: Any,
+        handler: Callable[[Any], cs.CoreSchema],
+    ) -> cs.CoreSchema:
+        lookup_type_adapter = _get_lookup_field_type_adapter(
+            cls.model, cls.lookup_field
+        )
 
-        def validate_from_int(value: str):
-            result = cls.queryset.get(pk=value)
+        pk_schema = lookup_type_adapter.core_schema
+
+        # Input is PK (or slug field)
+
+        def validate_from_pk(value: Any) -> django_models.Model:
+            queryset = cls.model.objects.all()  # TODO allow customizing queryset
+            try:
+                result = queryset.get(**{cls.lookup_field: value})
+            except ObjectDoesNotExist as exc:
+                raise ValueError(
+                    f"No {queryset.model._meta.verbose_name.lower()} found."
+                ) from exc
             return result
 
-        from_int_schema = core_schema.chain_schema(
+        pk_schema = lookup_type_adapter.core_schema
+        from_pk_schema = cs.chain_schema(
             [
-                core_schema.str_schema(),
-                core_schema.no_info_plain_validator_function(validate_from_int),
+                pk_schema,
+                cs.no_info_plain_validator_function(validate_from_pk),
             ]
         )
 
-        return core_schema.json_or_python_schema(
-            json_schema=from_int_schema,
-            python_schema=core_schema.union_schema(
+        def serialize_data(
+            instance: django_models.Model,
+            info: SerializationInfo,  # pylint: disable=unused-argument
+        ) -> List[Any]:
+            return getattr(instance, cls.lookup_field)
+
+        return cs.json_or_python_schema(
+            json_schema=cs.union_schema(
                 [
-                    # check if it's an instance first before doing any further work
-                    core_schema.is_instance_schema(cls.queryset.model),
-                    from_int_schema,
+                    from_pk_schema,
                 ]
             ),
-            serialization=core_schema.plain_serializer_function_ser_schema(
-                lambda instance: instance.x
+            python_schema=cs.union_schema(
+                [
+                    cs.is_instance_schema(django_models.Model),
+                    from_pk_schema,
+                ]
+            ),
+            serialization=cs.plain_serializer_function_ser_schema(
+                serialize_data, info_arg=True
             ),
         )
 
-    # def __get_pydantic_core_schema__(
-    #     self, source_type: Any, handler: GetCoreSchemaHandler
-    # ) -> CoreSchema:
-    #     if self.slug_field == 'pk':
-    #         model_field = self.queryset.model._meta.pk
-    #     else:
-    #         model_field = self.queryset.model._meta.get_field(self.slug_field)
 
-    #     internal_type = model_field.get_internal_type()
-    #     _type = TYPES.get(internal_type, int)
+# ----------------------------------------------------------------
+# Many-to-Many (Queryset)
+# ----------------------------------------------------------------
 
-    #     from_any_schema = core_schema.chain_schema(
-    #         [
-    #             handler(_type),
-    #             core_schema.no_info_plain_validator_function(self.fetch_object),
-    #         ]
-    #     )
+def create_queryset_field(model_class, optional: bool, lookup_fname: str = None):
 
-    #     return core_schema.json_or_python_schema(
-    #         json_schema=from_any_schema, #core_schema.no_info_plain_validator_function(self.fetch_object),
-    #         python_schema=core_schema.with_info_after_validator_function(
-    #             self.fetch_object, core_schema.list_schema(handler(_type))
-    #         ),
-    #         serialization=core_schema.plain_serializer_function_ser_schema(
-    #             self._identity
-    #         ),
-    #     )
+    lookup_fname = lookup_fname or "pk"  # force not None
 
-    def _identity(self, instance,*args, **kwargs):
-        return instance
+    class QuerySetFieldLink(QuerySetField):
+        model = model_class
+        lookup_field = lookup_fname
 
-    def fetch_object(self, value: List[Any], *args, **kwargs):
-        queryset = self.queryset
-        if self.only_fields:
-            queryset = queryset.only(*self.only_fields)
-
-        try:
-            result = list(queryset.filter(**{f"{self.slug_field}__in": value}))
-        except ObjectDoesNotExist as exc:
-            raise ValueError(f"No {queryset.model._meta.verbose_name.lower()} found.") from exc
-
-        if len(result) != len(value):
-            raise ValueError(f"Some {queryset.model._meta.verbose_name.lower()} are not found.")
-        return result
+    if optional:
+        return Optional[QuerySetFieldLink]
+    return QuerySetFieldLink
 
 
+class QuerySetField:
 
-@dataclass(frozen=True)
-class ManyToManyToSlug:
+    model: T = None
+    lookup_field: str = "pk"
 
-    model_class: models.Model
-    slug_field: str = 'pk'
-    only_fields: Union[None, List[str]] = None
-    queryset: models.QuerySet = None
-
+    @classmethod
     def __get_pydantic_core_schema__(
-        self, source_type: Any, handler: GetCoreSchemaHandler
-    ) -> CoreSchema:
-        if self.slug_field == 'pk':
-            model_field = self.model_class._meta.pk
-        else:
-            model_field = self.model_class._meta.get_field(self.slug_field)
+        cls,
+        source: Any,
+        handler: Callable[[Any], cs.CoreSchema],
+    ) -> cs.CoreSchema:
+        model_class = cls.model
+        lookup_field = _get_lookup_field_instance(model_class, cls.lookup_field)
 
-        internal_type = model_field.get_internal_type()
-        _type = TYPES.get(internal_type, int)
+        # Refuse abstract model
+        is_abstract = getattr(model_class._meta, "abstract", False)
+        if is_abstract:
+            raise ValueError(
+                "Abstract models cannot be used as QuerySet fields directly."
+            )
 
-        from_any_schema = core_schema.chain_schema(
+        # Input is List of PK
+
+        def validate_from_pk_list(values: List[Any]) -> django_models.QuerySet:
+            # Order is NOT preserved here. Check https://github.com/bnznamco/django-structured-field/blob/master/structured/pydantic/fields/queryset.py#L37
+            # if needed
+            q_expr = django_models.Q(**{f"{lookup_field.name}__in": values})
+            qs = model_class._default_manager.filter(q_expr)
+            objects = list(qs)
+            if len(objects) != len(values):
+                raise ValueError("Some given values does not exists.")
+            return qs
+
+        lookup_type_adapter = _get_lookup_field_type_adapter(
+            cls.model, cls.lookup_field
+        )
+
+        pk_schema = lookup_type_adapter.core_schema
+        from_pk_list_schema = cs.chain_schema(
             [
-                handler(_type),
-                #core_schema.no_info_plain_validator_function(self._identity),
+                cs.list_schema(pk_schema),
+                cs.no_info_plain_validator_function(validate_from_pk_list),
             ]
         )
 
-        return core_schema.json_or_python_schema(
-            json_schema=from_any_schema, #core_schema.no_info_plain_validator_function(self.fetch_object),
-            python_schema=core_schema.with_info_before_validator_function(
-                self._identity, core_schema.list_schema(handler(_type))
+        # Input is List of Model Instance
+
+        def validate_from_model_list(
+            values: List[django_models.Model],
+        ) -> django_models.QuerySet:
+            if any(
+                not isinstance(v, model_class) for v in values
+            ):  # pylint: disable=W1116
+                raise ValueError(
+                    f"Expected list of {model_class.__class__.__name__} instances."
+                )
+            q_expr = django_models.Q(
+                **{
+                    f"{lookup_field.name}__in": [
+                        getattr(v, lookup_field.name) for v in values
+                    ]
+                }
+            )
+            return model_class._default_manager.filter(q_expr)
+
+        from_model_list_schema = cs.chain_schema(
+            [
+                cs.list_schema(cs.is_instance_schema(model_class)),
+                cs.no_info_plain_validator_function(validate_from_model_list),
+            ]
+        )
+
+        def serialize_data(
+            qs: django_models.QuerySet,
+            info: SerializationInfo,  # pylint: disable=unused-argument
+        ) -> List[Any]:
+            return [getattr(item, lookup_field.name) for item in qs]
+
+        return cs.json_or_python_schema(
+            json_schema=cs.union_schema(
+                [
+                    from_model_list_schema,
+                    from_pk_list_schema,
+                ]
             ),
-            serialization=core_schema.plain_serializer_function_ser_schema(
-                self._identity
+            python_schema=cs.union_schema(
+                [
+                    cs.is_instance_schema(django_models.QuerySet),
+                    from_model_list_schema,
+                    from_pk_list_schema,
+                ]
+            ),
+            serialization=cs.plain_serializer_function_ser_schema(
+                serialize_data, info_arg=True
             ),
         )
 
-    def _identity(self, values, *args, **kwargs):
-        print('==========instannce', values, args, kwargs)
-        result = []
-        for item in values:
-            if isinstance(item, models.Model):
-                result.append(getattr(item, self.slug_field, None))
-            else:
-                result.append(item)
-        return result
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls, _core_schema: cs.CoreSchema, handler: GetJsonSchemaHandler
+    ) -> JsonSchemaValue:
+        model_class = cls.model
 
-    def fetch_object(self, value: List[Any]):
-        print('===========value',value)
-        return ['caca']
-        queryset = self.queryset
-        if not queryset:
-            queryset = self.model_class._default_manager.all()
-
-        if self.only_fields:
-            queryset = queryset.only(*self.only_fields)
-
-        try:
-            result = list(queryset.filter(**{f"{self.slug_field}__in": value}))
-        except ObjectDoesNotExist as exc:
-            raise ValueError(f"No {queryset.model._meta.verbose_name.lower()} found.") from exc
-
-        if len(result) != len(value):
-            raise ValueError(f"Some {queryset.model._meta.verbose_name.lower()} are not found.")
-        return result
+        if model_class:
+            pk_schema = _get_lookup_field_type_adapter(
+                cls.model, cls.lookup_field
+            ).core_schema
+            json_schema = handler(cs.list_schema(pk_schema))
+        else:
+            json_schema = handler(cs.list_schema(cs.any_schema()))
+        return json_schema
