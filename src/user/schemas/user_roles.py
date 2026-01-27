@@ -3,24 +3,38 @@ from typing import List, Optional
 from ninja import FilterSchema, Schema
 from pydantic import Field
 
-from core.schemas.factory import create_response_schema
+from core.schemas import ModelSchema
 from user.models import UserRole
 
 # ----------------------------------------------------
-# UserRole
+# API Schemas
 # ----------------------------------------------------
 
 
-UserRoleSchema = create_response_schema(
-    UserRole,
-    fields=[
-        "id",
-        "name",
-        "permissions",
-        "rules",
-    ],
-    optional_fields="__all__",
-)
+class UserRoleDisplayNameSchema(ModelSchema):
+    class Meta:
+        model = UserRole
+        fields = [
+            "id",
+            "name",
+        ]
+
+
+class UserRoleSchema(ModelSchema):
+    class Meta:
+        model = UserRole
+        fields = [
+            "id",
+            "name",
+            "permissions",
+            "rules",
+        ]
+        optional_fields = "__all__"
+
+
+# ----------------------------------------------------
+# Filter Schemas
+# ----------------------------------------------------
 
 
 class UserRoleFilterSchema(FilterSchema):

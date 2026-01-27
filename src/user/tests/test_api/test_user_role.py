@@ -88,8 +88,8 @@ class UserAPITest(CommonTestMixin, APITestCaseMixin, TestCase):
         self.assertIn("results", data)
         self.assertIn("next", data)
         self.assertIn("previous", data)
-        self.assertEqual(len(data["results"]), 4)
-        self.assertEqual(data["count"], 4)
+        self.assertEqual(len(data["results"]), 5)
+        self.assertEqual(data["count"], 5)
 
         for item in data["results"]:
             obj = UserRole.objects.get(id=item["id"])
