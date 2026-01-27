@@ -1,77 +1,93 @@
-from typing import Optional
+from typing import List, Optional
 
-from ninja import FilterSchema, ModelSchema, Schema
+from ninja import FilterSchema, Schema
 from pydantic import UUID4, Field
 
-from core.schemas.factory import create_request_schema, create_response_schema
+from core.schemas import ModelSchema
 from user.models import User
 
-# ----------------------------------------------------
-# User
-# ----------------------------------------------------
+from .user_roles import UserRoleDisplayNameSchema
 
+# ----------------------------------------------------
+# Path Schemas
+# ----------------------------------------------------
 
 class ProfilePathParam(Schema):
     id: UUID4
 
+# ----------------------------------------------------
+# API Schemas
+# ----------------------------------------------------
+
 
 class UserDisplayNameSchema(ModelSchema):
-    id: UUID4
-
     class Meta:
         model = User
         fields = ["id", "username"]
 
 
-UserSchema = create_response_schema(
-    User,
-    fields=[
-        "id",
-        "username",
-        "last_name",
-        "first_name",
-        "email",
-        "is_active",
-        "user_type",
-        "language",
-        "avatar",
-        "roles",
-    ],
-    optional_fields="__all__",
-)
-UserCreateSchema = create_request_schema(
-    User,
-    fields=[
-        "username",
-        "last_name",
-        "first_name",
-        "email",
-        "user_type",
-        "language",
-        "avatar",
-        "roles",
-    ],
-)
-UserUpdateSchema = create_request_schema(
-    User,
-    fields=[
-        "username",
-        "last_name",
-        "first_name",
-        "email",
-        "user_type",
-        "language",
-        "avatar",
-        "roles",
-    ],
-    optional_fields="__all__",
-)
+class UserSchema(ModelSchema):
 
-UserProfileSchema = create_request_schema(
-    User,
-    fields=["id", "last_name", "first_name", "email", "language", "avatar"],
-    optional_fields="__all__",
-)
+    roles: List[UserRoleDisplayNameSchema]
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "last_name",
+            "first_name",
+            "email",
+            "is_active",
+            "user_type",
+            "language",
+            "avatar",
+            "roles",
+        ]
+        optional_fields = "__all__"
+
+
+class UserCreateSchema(ModelSchema):
+    class Meta:
+        model = User
+        fields = [
+            "username",
+            "last_name",
+            "first_name",
+            "email",
+            "user_type",
+            "language",
+            "avatar",
+            "roles",
+        ]
+
+
+class UserUpdateSchema(ModelSchema):
+    class Meta:
+        model = User
+        fields = [
+            "username",
+            "last_name",
+            "first_name",
+            "email",
+            "user_type",
+            "language",
+            "avatar",
+            "roles",
+        ]
+        optional_fields = "__all__"
+
+
+class UserProfileSchema(ModelSchema):
+    class Meta:
+        model = User
+        fields = ["id", "last_name", "first_name", "email", "language", "avatar"]
+        optional_fields = "__all__"
+
+
+# ----------------------------------------------------
+# Filters Schemas
+# ----------------------------------------------------
 
 
 class UserFilterSchema(FilterSchema):

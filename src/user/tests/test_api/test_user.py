@@ -525,9 +525,10 @@ class UserAPITest(CommonTestMixin, APITestCaseMixin, TestCase):
         # TODO avatar
 
         if "roles" in fields:
-            self.assertEqual(
-                set(api_data["roles"]), {role.pk for role in obj.roles.all()}
-            )
+            for role in obj.roles.all():
+                role_api_val = {"id": role.pk, "name": role.name}
+                self.assertIn(role_api_val, api_data["roles"])
+            self.assertEqual(len(api_data["roles"]), len(obj.roles.all()))
 
         self.assertEqual(
             set(fields),
