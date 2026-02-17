@@ -2,14 +2,13 @@ import datetime
 import typing as t
 from enum import Enum
 from functools import singledispatch
-from uuid import UUID
 
 from django.contrib.postgres import fields as psql_fields
 from django.core.exceptions import ImproperlyConfigured
 from django.core.validators import MaxLengthValidator
 from django.db import models
 from django.db.models.fields import Field
-from pydantic import AnyUrl, EmailStr, IPvAnyAddress
+from pydantic import UUID4, AnyUrl, EmailStr, IPvAnyAddress
 from pydantic.fields import FieldInfo as PydanticField
 from pydantic_core import PydanticUndefined
 
@@ -307,7 +306,7 @@ def convert_field_to_uuid(
     field: Field, optional: bool = False, extra_kwargs: dict = None
 ) -> t.Tuple[t.Type, PydanticField]:
     return _get_pydantic_fieldinfo_from_field(
-        UUID, field, optional=optional, extra_kwargs=extra_kwargs
+        UUID4, field, optional=optional, extra_kwargs=extra_kwargs
     )
 
 
